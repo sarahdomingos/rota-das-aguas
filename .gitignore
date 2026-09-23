@@ -1,0 +1,15 @@
+# Build e Compilação
+/build/
+/bin/
+/out/
+*.o
+*.obj
+*.exe
+
+# Arquivos de IDEs e Editores
+.vscode/
+.idea/
+*.vcxproj*
+*.sln
+*.user
+.DS_Store
