@@ -1,0 +1,1 @@
+// Motor genérico dos desafios matemáticos

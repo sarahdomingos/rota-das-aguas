@@ -1,0 +1,1 @@
+// Classe abstrata para Cenas
