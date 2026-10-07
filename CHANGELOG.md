@@ -2,6 +2,26 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A5: itens coletáveis
+
+**Pedido:** etapa A5 do roteiro: itens coletáveis genéricos, definidos como dados. No mundo, o item gira e flutua, brilha em foco e some ao ser pego com clique ou E, com som. Feito na branch `itens-coletaveis`, criada a partir da `modelo-npc`.
+
+### Adicionado
+- `assets/itens/maceio.txt`: tipos de item (id, nome, categoria, modelo e cor) e posições no mundo, com o formato explicado no topo. Há 3 cocos, 2 conchas e 1 fita de festa pela orla.
+- `src/gameplay/Items`: catálogo de itens (`ItemDefinition`, `ItemCatalog`) e leitor do arquivo (`loadItemsFile`), reaproveitável por qualquer cena.
+- `src/entities/Item`: item no mundo.
+  - Flutua e gira devagar e tem um brilho leve.
+  - Brilha mais quando está em foco e some ao ser pego.
+- `src/models/ItemModels`: modelos simples gerados por código (coco, concha e fita de festa).
+- **Ao pegar um item:** toca um som de pegar (`SoundSynth::pickup`, três notas subindo) e aparece o aviso "Você pegou: Coco (+1)" no alto da tela por alguns segundos.
+
+### Alterado
+- `Scene`: `Interaction` informa o item pego (`itemId`, `itemQuantity`) e a cena expõe o catálogo de itens (`getItemCatalog`).
+- `MaceioScene`: carrega os itens do arquivo, desenha os itens e não deixa focar os que já foram pegos.
+
+### Removido
+- Nada.
+
 ## 2026-10-07 — Etapa A4: modelo de NPC reutilizável
 
 **Pedido:** executar a etapa A4 do roteiro: um gerador de NPC que reaproveita o corpo e a hierarquia da Lia, com aparência definida por parâmetros. Os NPCs respiram parados, viram para a Lia quando ela chega perto, têm colisão e abrem um diálogo da A3. Para demonstrar, dois NPCs em Maceió. Feito na branch `modelo-npc`, criada a partir da `sistema-de-dialogo`.

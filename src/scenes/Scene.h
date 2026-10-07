@@ -6,6 +6,7 @@
 // luz e interacoes; o Game so conversa com esta interface.
 
 #include "graphics/Light.h"
+#include "gameplay/Items.h"
 #include "graphics/MathUtils.h"
 
 #include <string>
@@ -21,12 +22,15 @@ enum class Surface {
 
 enum class InteractionSound {
     Chime,
-    Leaves
+    Leaves,
+    Pickup
 };
 
 struct Interaction {
-    std::string dialogueId;     // bloco do arquivo de dialogos da cena
+    std::string dialogueId;     // bloco do arquivo de dialogos da cena (ou vazio)
     InteractionSound sound;
+    std::string itemId;         // item pego (ou vazio)
+    int itemQuantity;
 };
 
 class Scene {
@@ -56,6 +60,9 @@ public:
     virtual int findInteractable(const Vec3& playerPosition, const Vec3* rayOrigin, const Vec3* rayDirection) const = 0;
     virtual void setFocus(int id) = 0;
     virtual Interaction interact(int id) = 0;
+
+    // Catalogo dos itens da cena (nomes, categorias e cores)
+    virtual const ItemCatalog& getItemCatalog() const = 0;
 };
 
 #endif

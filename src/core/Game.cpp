@@ -85,7 +85,8 @@ Game::Game()
       m_dragDistance(0.0f),
       m_state(GameState::Playing),
       m_stateBeforePause(GameState::Playing),
-      m_transitionTimer(0.0f)
+      m_transitionTimer(0.0f),
+      m_toastTimer(0.0f)
 {
 }
 
@@ -108,6 +109,7 @@ void Game::loadSounds()
     m_chime = SoundSynth::chime();
     m_leaves = SoundSynth::leavesRustle();
     m_blip = SoundSynth::dialogueBlip();
+    m_pickup = SoundSynth::pickup();
 }
 
 bool Game::init()
@@ -262,6 +264,14 @@ void Game::handleInteraction()
     }
 
     Interaction result = m_scene->interact(target);
+
+    // Item: pega, toca o som e mostra um aviso rapido
+    if (!result.itemId.empty()) {
+        m_audio.play(m_pickup, 0.5f, false);
+        onItemCollected(result.itemId, result.itemQuantity);
+        return;
+    }
+
     m_audio.play(result.sound == InteractionSound::Leaves ? m_leaves : m_chime, 0.55f, false);
 
     if (result.sound == InteractionSound::Leaves) {
@@ -337,6 +347,19 @@ void Game::openDialogue(const std::string& id)
     if (m_dialogue.start(id)) {
         changeState(GameState::Dialogue);
     }
+}
+
+void Game::showToast(const std::string& text)
+{
+    m_toast = text;
+    m_toastTimer = 2.5f;
+}
+
+void Game::onItemCollected(const std::string& itemId, int quantity)
+{
+    char buffer[160];
+    std::snprintf(buffer, sizeof(buffer), "Você pegou: %s (+%d)", m_scene->getItemCatalog().nameOf(itemId).c_str(), quantity);
+    showToast(buffer);
 }
 
 // ------------------------------------------------------------------ atualizacao
@@ -418,6 +441,9 @@ void Game::update(float deltaTime)
     }
 
     m_time += deltaTime;
+    if (m_toastTimer > 0.0f) {
+        m_toastTimer -= deltaTime;
+    }
     handleCamera();
 
     bool closePressed = Input::wasKeyPressed(GLFW_KEY_E) || Input::wasKeyPressed(GLFW_KEY_SPACE) ||
@@ -511,6 +537,18 @@ void Game::renderInterface()
     float hintWidth = m_text.measure(HINT, hintScale);
     m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
     m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
+
+    // Aviso rapido no alto da tela (ex.: item pego)
+    if (m_toastTimer > 0.0f && !m_toast.empty()) {
+        float fade = m_toastTimer < 0.5f ? m_toastTimer / 0.5f : 1.0f;
+        float toastScale = 0.75f * ui;
+        float toastWidth = m_text.measure(m_toast, toastScale) + 40.0f * ui;
+        float toastHeight = m_text.lineHeight(toastScale) + 16.0f * ui;
+        float toastX = (width - toastWidth) * 0.5f;
+        float toastY = 70.0f * ui;
+        m_text.drawBox(toastX, toastY, toastWidth, toastHeight, { 0.05f, 0.08f, 0.12f, 0.7f * fade });
+        m_text.drawText(toastX + 20.0f * ui, toastY + 8.0f * ui, m_toast, toastScale, { 1.0f, 0.9f, 0.5f, fade });
+    }
 
     // Caixa de dialogo / desafio na parte de baixo da tela
     bool inDialogue = m_state == GameState::Dialogue && m_dialogue.isActive();

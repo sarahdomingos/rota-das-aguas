@@ -2,7 +2,9 @@
 
 #include "graphics/Camera.h"
 #include "graphics/ProceduralTextures.h"
+#include "core/AssetPath.h"
 #include "models/CoastalModels.h"
+#include "models/ItemModels.h"
 #include "models/UrbanModels.h"
 
 #include <cmath>
@@ -372,6 +374,42 @@ void MaceioScene::buildNpcs()
     }
 }
 
+// ------------------------------------------------------------------ itens
+
+void MaceioScene::buildItems()
+{
+    std::vector<ItemPlacement> placements;
+    loadItemsFile(AssetPath::resolve("assets/itens/maceio.txt"), m_itemCatalog, placements);
+
+    // Um modelo por tipo de item (compartilhado por todos os itens daquele tipo)
+    for (const ItemPlacement& placement : placements) {
+        if (m_itemMeshes.count(placement.itemId) == 0) {
+            const ItemDefinition* definition = m_itemCatalog.find(placement.itemId);
+            m_itemMeshes[placement.itemId] = definition != nullptr
+                ? ItemModels::build(definition->model, definition->color)
+                : ItemModels::build("", { 1.0f, 1.0f, 1.0f });
+        }
+    }
+
+    for (size_t i = 0; i < placements.size(); ++i) {
+        const ItemPlacement& p = placements[i];
+        float y = groundHeight(p.x, p.z);
+        m_items.push_back(Item(p.itemId, p.quantity, &m_itemMeshes[p.itemId], p.x, y, p.z, static_cast<float>(i) * 1.3f));
+        m_interactables.push_back({ Kind::Item, static_cast<int>(i), { p.x, y + 0.3f, p.z }, 1.8f, 0.6f,
+                                    "", InteractionSound::Pickup, 0.0f });
+    }
+}
+
+bool MaceioScene::isAvailable(const Interactable& item) const
+{
+    return item.kind != Kind::Item || !m_items[item.index].isCollected();
+}
+
+const ItemCatalog& MaceioScene::getItemCatalog() const
+{
+    return m_itemCatalog;
+}
+
 void MaceioScene::buildSky()
 {
     m_skyDome = Mesh::createSkyDome({ 0.80f, 0.89f, 0.97f }, { 0.28f, 0.53f, 0.86f });
@@ -427,6 +465,7 @@ bool MaceioScene::init()
     }
 
     buildNpcs();
+    buildItems();
 
     return true;
 }
@@ -452,6 +491,10 @@ void MaceioScene::update(float deltaTime, float time, const Vec3& playerPosition
     for (size_t i = 0; i < m_npcs.size(); ++i) {
         m_npcs[i].update(deltaTime, playerPosition);
         m_npcs[i].setHighlight(highlightFor(Kind::Npc, static_cast<int>(i)));
+    }
+
+    for (size_t i = 0; i < m_items.size(); ++i) {
+        m_items[i].setHighlight(highlightFor(Kind::Item, static_cast<int>(i)));
     }
 }
 
@@ -565,6 +608,7 @@ int MaceioScene::findInteractable(const Vec3& playerPosition, const Vec3* rayOri
 
         for (size_t i = 0; i < m_interactables.size(); ++i) {
             const Interactable& item = m_interactables[i];
+            if (!isAvailable(item)) continue;
             Vec3 toCenter = subtract(item.position, *rayOrigin);
             float t = dot(toCenter, *rayDirection);
             if (t < 0.0f) continue;
@@ -586,6 +630,7 @@ int MaceioScene::findInteractable(const Vec3& playerPosition, const Vec3* rayOri
 
     for (size_t i = 0; i < m_interactables.size(); ++i) {
         const Interactable& item = m_interactables[i];
+            if (!isAvailable(item)) continue;
         float dx = item.position.x - playerPosition.x;
         float dz = item.position.z - playerPosition.z;
         float distance = std::sqrt(dx * dx + dz * dz);
@@ -606,7 +651,7 @@ void MaceioScene::setFocus(int id)
 
 Interaction MaceioScene::interact(int id)
 {
-    Interaction result = { "", InteractionSound::Chime };
+    Interaction result = { "", InteractionSound::Chime, "", 0 };
 
     if (id < 0 || id >= static_cast<int>(m_interactables.size())) {
         return result;
@@ -617,6 +662,16 @@ Interaction MaceioScene::interact(int id)
 
     if (item.kind == Kind::Palm) {
         m_palms[item.index].shake = 1.0f;
+    }
+
+    if (item.kind == Kind::Item) {
+        Item& worldItem = m_items[item.index];
+        if (worldItem.isCollected()) {
+            return result;
+        }
+        worldItem.collect();
+        result.itemId = worldItem.getItemId();
+        result.itemQuantity = worldItem.getQuantity();
     }
 
     result.dialogueId = item.dialogueId;
@@ -771,6 +826,10 @@ void MaceioScene::drawOpaque(Renderer& renderer, float time)
 
     for (const NPC& npc : m_npcs) {
         npc.draw(renderer, time);
+    }
+
+    for (const Item& item : m_items) {
+        item.draw(renderer, time);
     }
 }
 

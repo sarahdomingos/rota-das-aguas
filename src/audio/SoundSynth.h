@@ -28,6 +28,9 @@ Sound leavesRustle();
 // "Clique" suave ao avancar uma fala do dialogo.
 Sound dialogueBlip();
 
+// Notinha subindo ao pegar um item.
+Sound pickup();
+
 }
 
 #endif

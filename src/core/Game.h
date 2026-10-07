@@ -53,6 +53,7 @@ private:
     Sound m_chime;
     Sound m_leaves;
     Sound m_blip;
+    Sound m_pickup;
 
     int m_musicVoice;
     int m_wavesVoice;
@@ -66,6 +67,8 @@ private:
     GameState m_state;
     GameState m_stateBeforePause;
     float m_transitionTimer;
+    std::string m_toast;
+    float m_toastTimer;
     TextRenderer m_text;
     Dialogue m_dialogue;
 
@@ -73,6 +76,8 @@ private:
     void enterState(GameState state);
     void exitState(GameState state);
     void openDialogue(const std::string& id);
+    void onItemCollected(const std::string& itemId, int quantity);
+    void showToast(const std::string& text);
 
     void loadSounds();
     void update(float deltaTime);

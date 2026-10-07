@@ -430,4 +430,24 @@ Sound dialogueBlip()
     return sound;
 }
 
+Sound pickup()
+{
+    Sound sound;
+    std::size_t length = static_cast<std::size_t>(0.35f * RATE);
+    sound.samples.assign(length, 0.0f);
+
+    const float notes[3] = { 784.0f, 988.0f, 1319.0f }; // sol, si, mi
+    for (int n = 0; n < 3; ++n) {
+        std::size_t start = static_cast<std::size_t>(n * 0.06f * RATE);
+        for (std::size_t i = start; i < length; ++i) {
+            float t = (i - start) / RATE;
+            float envelope = std::fmin(t / 0.004f, 1.0f) * std::exp(-t * 14.0f);
+            sound.samples[i] += std::sin(2.0f * PI * notes[n] * t) * envelope;
+        }
+    }
+
+    normalize(sound, 0.5f);
+    return sound;
+}
+
 }
