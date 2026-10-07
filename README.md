@@ -24,9 +24,11 @@ A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/sh
 - Roda do mouse → zoom
 - Clique ou E → interagir com o objeto em destaque (barco, placa, coqueiros)
 - R / T → girar o barco · Z / X → diminuir / aumentar o barco
+- E, Espaço ou clique → fecha a mensagem na tela
+- Esc ou P → pausa (na pausa: Q sai do jogo)
+- F2 → teste de transição (escurece e volta) · F3 → teste de desafio
 - M → liga/desliga a música
 - F12 → salva uma captura (`captura.bmp`)
-- Esc → sair
 
 # Organização do código
 - `src/core` → `Game` (loop principal), `Window`, `Input`, `AssetPath`

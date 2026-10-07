@@ -14,6 +14,17 @@
 
 #include <string>
 
+// Estados do jogo. So JOGANDO aceita movimento e interacao; DIALOGO e DESAFIO
+// congelam a Lia mas a cena continua animando; PAUSA congela o mundo inteiro;
+// TRANSICAO escurece a tela e volta (sera usada na troca de cena).
+enum class GameState {
+    Playing,
+    Dialogue,
+    Challenge,
+    Paused,
+    Transition
+};
+
 class Game {
 public:
     Game();
@@ -48,14 +59,24 @@ private:
 
     float m_time;
     float m_dragDistance;
-    float m_messageTimer;
     std::string m_message;
+
+    GameState m_state;
+    GameState m_stateBeforePause;
+    float m_transitionTimer;
     TextRenderer m_text;
+
+    void changeState(GameState next);
+    void enterState(GameState state);
+    void exitState(GameState state);
+    void openDialogue(const std::string& message);
 
     void loadSounds();
     void update(float deltaTime);
     void handleCamera();
     void handleInteraction();
+    void handleMovement(float deltaTime, bool allowMove);
+    void updateWorld(float deltaTime);
     void handleBoatControls(float deltaTime);
     void render();
     void renderInterface();
