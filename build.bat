@@ -106,4 +106,4 @@ echo.
 .\jogo.exe
 
 echo.
-pause
+pause
