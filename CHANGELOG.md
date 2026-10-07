@@ -2,6 +2,25 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A6: inventário e HUD
+
+**Pedido:** etapa A6 do roteiro: inventário que soma e retira quantidades, HUD com os itens que a Lia carrega e uma tela de inventário na tecla I. Feito na branch `inventario`, criada a partir da `itens-coletaveis`.
+
+### Adicionado
+- `src/gameplay/Inventory`: a mochila da Lia.
+  - `add` e `remove` (retirar só funciona se houver quantidade suficiente, o que já atende as entregas e a subtração do capítulo 2), `count` e `entries`.
+  - Os itens ficam na ordem em que foram pegos.
+- **HUD** no canto superior direito com os itens carregados (quadradinho na cor do item, nome e quantidade). Só aparece quando há algum item.
+- **Tela "Mochila da Lia"** na tecla I: um estado próprio (`GameState::Inventory`) que para o mundo como a pausa e lista nome, categoria e quantidade. Fecha com I ou Esc.
+- Teste: `ROTA_TEST_STATE=mochila` abre o jogo com a mochila aberta e alguns itens.
+
+### Alterado
+- Pegar um item agora o guarda na mochila (o som e o aviso da A5 continuam).
+- As dicas de controle (canto e pausa) incluem "I: mochila".
+
+### Removido
+- Nada.
+
 ## 2026-10-07 — Etapa A5: itens coletáveis
 
 **Pedido:** etapa A5 do roteiro: itens coletáveis genéricos, definidos como dados. No mundo, o item gira e flutua, brilha em foco e some ao ser pego com clique ou E, com som. Feito na branch `itens-coletaveis`, criada a partir da `modelo-npc`.

@@ -11,6 +11,7 @@
 #include "graphics/Renderer.h"
 #include "scenes/Maceio/MaceioScene.h"
 #include "gameplay/Dialogue.h"
+#include "gameplay/Inventory.h"
 #include "ui/TextRenderer.h"
 
 #include <string>
@@ -23,7 +24,8 @@ enum class GameState {
     Dialogue,
     Challenge,
     Paused,
-    Transition
+    Transition,
+    Inventory   // tela da mochila: o mundo para, como na pausa
 };
 
 class Game {
@@ -71,6 +73,7 @@ private:
     float m_toastTimer;
     TextRenderer m_text;
     Dialogue m_dialogue;
+    Inventory m_inventory;
 
     void changeState(GameState next);
     void enterState(GameState state);
@@ -88,6 +91,8 @@ private:
     void handleBoatControls(float deltaTime);
     void render();
     void renderInterface();
+    void renderHud(float ui, int width);
+    void renderInventoryScreen(float ui, int width, int height);
 };
 
 #endif
