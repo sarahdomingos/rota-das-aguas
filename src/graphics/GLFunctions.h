@@ -49,6 +49,8 @@ typedef GLint (APIENTRY *GetUniformLocationFn)(GLuint program, const GLchar* nam
 typedef void (APIENTRY *UniformMatrix4fvFn)(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 typedef void (APIENTRY *Uniform3fFn)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
 typedef void (APIENTRY *Uniform4fFn)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+typedef void (APIENTRY *Uniform1fFn)(GLint location, GLfloat v0);
+typedef void (APIENTRY *Uniform1iFn)(GLint location, GLint v0);
 
 extern CreateShaderFn CreateShader;
 extern ShaderSourceFn ShaderSource;
@@ -67,6 +69,8 @@ extern GetUniformLocationFn GetUniformLocation;
 extern UniformMatrix4fvFn UniformMatrix4fv;
 extern Uniform3fFn Uniform3f;
 extern Uniform4fFn Uniform4f;
+extern Uniform1fFn Uniform1f;
+extern Uniform1iFn Uniform1i;
 
 // Precisa ser chamada depois que o contexto OpenGL estiver ativo.
 bool load();

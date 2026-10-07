@@ -1,35 +1,39 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-// Lia, a personagem principal. Por enquanto representada por cubos
-// (corpo, cabeca e um "nariz" que mostra para onde ela esta virada).
+// Lia, a personagem principal: anda na direcao pedida (relativa a camera),
+// vira suavemente para onde anda, respeita o chao e as colisoes da cena e
+// anima bracos e pernas.
 
 #include "Entity.h"
-#include "graphics/MathUtils.h"
+#include "models/LiaModel.h"
 
-class Mesh;
+class Scene;
 
 class Player : public Entity {
 public:
-    explicit Player(const Mesh& cube);
+    Player();
 
-    void update(float deltaTime) override;
-    void draw(Renderer& renderer) const override;
+    void build();
+    void placeAt(const Vec3& position, float yawDegrees);
+
+    // moveDirection: direcao no plano XZ (tamanho 0 = parada).
+    void update(float deltaTime, const Vec3& moveDirection, bool running, const Scene& scene);
+    void draw(Renderer& renderer, float time) const override;
 
     Vec3 getPosition() const;
     float getYaw() const;
+    float getRadius() const;
 
-    void setGroundHeight(float height);
+    // Verdadeiro no quadro em que um pe toca o chao (som de passo).
+    bool tookStep() const;
 
 private:
-    const Mesh& m_cube;
+    CharacterModel m_model;
 
-    float m_walkSpeed;
-    float m_runSpeed;
-    float m_turnSpeed;
-    float m_worldLimit;
-
-    void drawPart(Renderer& renderer, const float parent[16], const Transform& local, const Vec3& color) const;
+    float m_walkPhase;
+    float m_walkAmount;
+    bool m_stepped;
 };
 
 #endif

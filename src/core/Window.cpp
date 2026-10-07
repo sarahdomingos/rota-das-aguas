@@ -1,4 +1,5 @@
 #include "Window.h"
+#include <cstdlib>
 #include <iostream>
 
 Window::Window(int width, int height, const std::string &title)
@@ -25,6 +26,13 @@ bool Window::init()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_SAMPLES, 4); // Antisserrilhamento, se o driver suportar
+
+    // No modo de captura automatica (testes) a janela nao rouba o foco do teclado
+    if (std::getenv("ROTA_AUTOSHOT") != nullptr)
+    {
+        glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+    }
 
     m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
     if (!m_window)
@@ -78,6 +86,11 @@ bool Window::shouldClose() const
 void Window::close()
 {
     glfwSetWindowShouldClose(m_window, GLFW_TRUE);
+}
+
+void Window::setTitle(const std::string &title)
+{
+    glfwSetWindowTitle(m_window, title.c_str());
 }
 
 void Window::swapBuffers()

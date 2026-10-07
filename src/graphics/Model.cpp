@@ -115,13 +115,13 @@ bool Model::load(const std::string& objPath)
     std::vector<Vec3> normals;
     std::vector<Vec2> texcoords;
 
-    std::vector<Material> materials;
+    std::vector<ModelMaterial> materials;
 
-    Material defaultMaterial;
+    ModelMaterial defaultMaterial;
     defaultMaterial.name = "default";
     materials.push_back(defaultMaterial);
 
-    Material* currentMaterial = &materials[0];
+    ModelMaterial* currentMaterial = &materials[0];
 
     std::string line;
 
@@ -181,7 +181,7 @@ bool Model::load(const std::string& objPath)
         }
 
         // ------------------------------------------
-        // Material library
+        // ModelMaterial library
         // ------------------------------------------
 
         else if (command == "mtllib") {
@@ -206,7 +206,7 @@ bool Model::load(const std::string& objPath)
         }
 
         // ------------------------------------------
-        // Material utilizado
+        // ModelMaterial utilizado
         // ------------------------------------------
 
         else if (command == "usemtl") {
@@ -214,7 +214,7 @@ bool Model::load(const std::string& objPath)
             std::string materialName;
             ss >> materialName;
 
-            Material* material =
+            ModelMaterial* material =
                 findMaterial(materials, materialName);
 
             if (material != nullptr) {
@@ -422,7 +422,7 @@ bool Model::load(const std::string& objPath)
 
 bool Model::loadMaterialLibrary(
     const std::string& mtlPath,
-    std::vector<Material>& materials)
+    std::vector<ModelMaterial>& materials)
 {
     std::ifstream file(mtlPath);
 
@@ -436,7 +436,7 @@ bool Model::loadMaterialLibrary(
         return false;
     }
 
-    Material* current = nullptr;
+    ModelMaterial* current = nullptr;
 
     std::string line;
 
@@ -456,7 +456,7 @@ bool Model::loadMaterialLibrary(
             std::string name;
             ss >> name;
 
-            Material material;
+            ModelMaterial material;
             material.name = name;
 
             materials.push_back(material);
@@ -477,8 +477,8 @@ bool Model::loadMaterialLibrary(
     return true;
 }
 
-Material* Model::findMaterial(
-    std::vector<Material>& materials,
+ModelMaterial* Model::findMaterial(
+    std::vector<ModelMaterial>& materials,
     const std::string& name)
 {
     for (auto& material : materials) {

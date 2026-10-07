@@ -1,12 +1,14 @@
 #ifndef BOAT_H
 #define BOAT_H
 
-// Embarcacao Mundau. Usa o modelo assets/models/barco_mundau.obj e,
-// se ele nao carregar, um casco simples gerado por codigo.
+// Embarcacao Mundau, atracada no pier. Usa o modelo
+// assets/models/barco_mundau.obj com a textura de madeira, e acompanha as
+// ondas (sobe, desce e inclina conforme a superficie da agua).
 
 #include "Entity.h"
 #include "graphics/Mesh.h"
 #include "graphics/Model.h"
+#include "graphics/Texture.h"
 
 class Boat : public Entity {
 public:
@@ -14,17 +16,28 @@ public:
 
     bool load();
 
-    void setPosition(float x, float y, float z);
+    void setMooring(float x, float z, float yawDegrees);
 
-    void update(float deltaTime) override;
-    void draw(Renderer& renderer) const override;
+    void update(float time);
+    void draw(Renderer& renderer, float time) const override;
+
+    void getMatrix(float matrix[16]) const;
+    Vec3 getPosition() const;
+
+    // Circulos de colisao ao longo do casco (centro x, z e raio).
+    int getColliders(float out[][3], int maximum) const;
+
+    // Brilho de destaque (objeto em foco/interagido), definido pela cena.
+    void setHighlight(float value);
 
 private:
     Model m_model;
     Mesh m_fallbackHull;
+    Texture m_wood;
 
-    float m_baseY;
-    float m_time;
+    float m_baseX;
+    float m_baseZ;
+    float m_highlight;
 };
 
 #endif

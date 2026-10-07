@@ -108,6 +108,7 @@ bool Shader::loadFromFiles(const std::string& vertexPath, const std::string& fra
     }
 
     m_program = program;
+    m_locations.clear();
     return true;
 }
 
@@ -116,17 +117,40 @@ void Shader::use() const
     GL2::UseProgram(m_program);
 }
 
+GLint Shader::location(const char* name) const
+{
+    std::map<std::string, GLint>::const_iterator found = m_locations.find(name);
+
+    if (found != m_locations.end()) {
+        return found->second;
+    }
+
+    GLint value = GL2::GetUniformLocation(m_program, name);
+    m_locations[name] = value;
+    return value;
+}
+
 void Shader::setMat4(const char* name, const float matrix[16]) const
 {
-    GL2::UniformMatrix4fv(GL2::GetUniformLocation(m_program, name), 1, GL_FALSE, matrix);
+    GL2::UniformMatrix4fv(location(name), 1, GL_FALSE, matrix);
 }
 
 void Shader::setVec3(const char* name, const Vec3& value) const
 {
-    GL2::Uniform3f(GL2::GetUniformLocation(m_program, name), value.x, value.y, value.z);
+    GL2::Uniform3f(location(name), value.x, value.y, value.z);
 }
 
 void Shader::setVec4(const char* name, float x, float y, float z, float w) const
 {
-    GL2::Uniform4f(GL2::GetUniformLocation(m_program, name), x, y, z, w);
+    GL2::Uniform4f(location(name), x, y, z, w);
+}
+
+void Shader::setFloat(const char* name, float value) const
+{
+    GL2::Uniform1f(location(name), value);
+}
+
+void Shader::setInt(const char* name, int value) const
+{
+    GL2::Uniform1i(location(name), value);
 }

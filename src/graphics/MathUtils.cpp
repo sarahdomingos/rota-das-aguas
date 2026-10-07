@@ -144,4 +144,176 @@ void lookAt(const Vec3& eye, const Vec3& target, const Vec3& up, float matrix[16
     matrix[14] = dot(forward, eye);
 }
 
+float clamp(float value, float minValue, float maxValue)
+{
+    return value < minValue ? minValue : (value > maxValue ? maxValue : value);
+}
+
+float lerp(float a, float b, float t)
+{
+    return a + (b - a) * t;
+}
+
+float smoothstep(float edge0, float edge1, float x)
+{
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+    return t * t * (3.0f - 2.0f * t);
+}
+
+float length(const Vec3& v)
+{
+    return std::sqrt(dot(v, v));
+}
+
+Vec3 lerp(const Vec3& a, const Vec3& b, float t)
+{
+    return { lerp(a.x, b.x, t), lerp(a.y, b.y, t), lerp(a.z, b.z, t) };
+}
+
+void translation(float x, float y, float z, float matrix[16])
+{
+    identity(matrix);
+    matrix[12] = x;
+    matrix[13] = y;
+    matrix[14] = z;
+}
+
+void rotationX(float degrees, float matrix[16])
+{
+    identity(matrix);
+    float c = std::cos(toRadians(degrees));
+    float s = std::sin(toRadians(degrees));
+    matrix[5] = c;
+    matrix[6] = s;
+    matrix[9] = -s;
+    matrix[10] = c;
+}
+
+void rotationY(float degrees, float matrix[16])
+{
+    identity(matrix);
+    float c = std::cos(toRadians(degrees));
+    float s = std::sin(toRadians(degrees));
+    matrix[0] = c;
+    matrix[2] = -s;
+    matrix[8] = s;
+    matrix[10] = c;
+}
+
+void rotationZ(float degrees, float matrix[16])
+{
+    identity(matrix);
+    float c = std::cos(toRadians(degrees));
+    float s = std::sin(toRadians(degrees));
+    matrix[0] = c;
+    matrix[1] = s;
+    matrix[4] = -s;
+    matrix[5] = c;
+}
+
+void scaling(float x, float y, float z, float matrix[16])
+{
+    identity(matrix);
+    matrix[0] = x;
+    matrix[5] = y;
+    matrix[10] = z;
+}
+
+void apply(float result[16], const float m[16])
+{
+    multiply(result, m, result);
+}
+
+Vec3 transformPoint(const float m[16], const Vec3& p)
+{
+    return {
+        m[0] * p.x + m[4] * p.y + m[8] * p.z + m[12],
+        m[1] * p.x + m[5] * p.y + m[9] * p.z + m[13],
+        m[2] * p.x + m[6] * p.y + m[10] * p.z + m[14]
+    };
+}
+
+Vec3 transformDirection(const float m[16], const Vec3& d)
+{
+    return {
+        m[0] * d.x + m[4] * d.y + m[8] * d.z,
+        m[1] * d.x + m[5] * d.y + m[9] * d.z,
+        m[2] * d.x + m[6] * d.y + m[10] * d.z
+    };
+}
+
+namespace {
+
+// Inversa da parte 3x3 (coluna-major) de m; retorna false se for singular.
+bool inverse3x3(const float m[16], float inv[9])
+{
+    float a = m[0], b = m[4], c = m[8];
+    float d = m[1], e = m[5], f = m[9];
+    float g = m[2], h = m[6], i = m[10];
+
+    float A = e * i - f * h;
+    float B = -(d * i - f * g);
+    float C = d * h - e * g;
+    float det = a * A + b * B + c * C;
+
+    if (std::fabs(det) < 1e-12f) {
+        return false;
+    }
+
+    float k = 1.0f / det;
+
+    // inv em ordem linha-major: inv[linha*3 + coluna]
+    inv[0] = A * k;
+    inv[1] = -(b * i - c * h) * k;
+    inv[2] = (b * f - c * e) * k;
+    inv[3] = B * k;
+    inv[4] = (a * i - c * g) * k;
+    inv[5] = -(a * f - c * d) * k;
+    inv[6] = C * k;
+    inv[7] = -(a * h - b * g) * k;
+    inv[8] = (a * e - b * d) * k;
+
+    return true;
+}
+
+}
+
+void normalMatrix(const float model[16], float result[16])
+{
+    float inv[9];
+    identity(result);
+
+    if (!inverse3x3(model, inv)) {
+        return;
+    }
+
+    // Transposta da inversa: elemento (linha r, coluna c) = inv(c, r)
+    for (int column = 0; column < 3; ++column) {
+        for (int row = 0; row < 3; ++row) {
+            result[column * 4 + row] = inv[column * 3 + row];
+        }
+    }
+}
+
+void inverseAffine(const float m[16], float result[16])
+{
+    float inv[9];
+    identity(result);
+
+    if (!inverse3x3(m, inv)) {
+        return;
+    }
+
+    for (int column = 0; column < 3; ++column) {
+        for (int row = 0; row < 3; ++row) {
+            result[column * 4 + row] = inv[row * 3 + column];
+        }
+    }
+
+    Vec3 t = { m[12], m[13], m[14] };
+    result[12] = -(result[0] * t.x + result[4] * t.y + result[8] * t.z);
+    result[13] = -(result[1] * t.x + result[5] * t.y + result[9] * t.z);
+    result[14] = -(result[2] * t.x + result[6] * t.y + result[10] * t.z);
+}
+
 }

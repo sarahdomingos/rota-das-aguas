@@ -1,86 +1,92 @@
 #include "Player.h"
 
-#include "core/Input.h"
-#include "graphics/Mesh.h"
 #include "graphics/Renderer.h"
+#include "scenes/Scene.h"
 
-#include <algorithm>
+#include <cmath>
 
-Player::Player(const Mesh& cube)
-    : m_cube(cube),
-      m_walkSpeed(4.0f),
-      m_runSpeed(8.0f),
-      m_turnSpeed(150.0f),
-      m_worldLimit(40.0f)
+using namespace MathUtils;
+
+namespace {
+
+const float WALK_SPEED = 3.2f;
+const float RUN_SPEED = 6.0f;
+const float TURN_SPEED = 600.0f;
+const float RADIUS = 0.28f;
+
+}
+
+Player::Player()
+    : m_walkPhase(0.0f),
+      m_walkAmount(0.0f),
+      m_stepped(false)
 {
 }
 
-void Player::update(float deltaTime)
+void Player::build()
 {
-    // A / D (ou setas) giram a Lia; W / S (ou setas) andam para frente/tras.
-    float turn = 0.0f;
-    float move = 0.0f;
-
-    if (Input::isKeyDown(GLFW_KEY_A) || Input::isKeyDown(GLFW_KEY_LEFT))  turn += 1.0f;
-    if (Input::isKeyDown(GLFW_KEY_D) || Input::isKeyDown(GLFW_KEY_RIGHT)) turn -= 1.0f;
-    if (Input::isKeyDown(GLFW_KEY_W) || Input::isKeyDown(GLFW_KEY_UP))    move += 1.0f;
-    if (Input::isKeyDown(GLFW_KEY_S) || Input::isKeyDown(GLFW_KEY_DOWN))  move -= 1.0f;
-
-    bool running = Input::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Input::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
-    float speed = running ? m_runSpeed : m_walkSpeed;
-
-    // Rotacao: incrementa o angulo em torno do eixo Y
-    m_transform.rotate(0.0f, turn * m_turnSpeed * deltaTime, 0.0f);
-
-    // Translacao: anda na direcao para onde a Lia esta virada
-    Vec3 forward = MathUtils::forwardFromYaw(m_transform.rotationY);
-    Vec3 step = MathUtils::scale(forward, move * speed * deltaTime);
-
-    m_transform.translate(step.x, 0.0f, step.z);
-
-    m_transform.positionX = std::max(-m_worldLimit, std::min(m_worldLimit, m_transform.positionX));
-    m_transform.positionZ = std::max(-m_worldLimit, std::min(m_worldLimit, m_transform.positionZ));
+    m_model = LiaModel::build();
 }
 
-void Player::drawPart(Renderer& renderer, const float parent[16], const Transform& local, const Vec3& color) const
+void Player::placeAt(const Vec3& position, float yawDegrees)
 {
-    // Hierarquia de transformacoes: mundo = pai * local
-    float localMatrix[16];
-    float worldMatrix[16];
-
-    local.getMatrix(localMatrix);
-    MathUtils::multiply(parent, localMatrix, worldMatrix);
-
-    renderer.draw(m_cube, worldMatrix, color);
+    m_transform.positionX = position.x;
+    m_transform.positionY = position.y;
+    m_transform.positionZ = position.z;
+    m_transform.rotationY = yawDegrees;
 }
 
-void Player::draw(Renderer& renderer) const
+void Player::update(float deltaTime, const Vec3& moveDirection, bool running, const Scene& scene)
+{
+    m_stepped = false;
+
+    float amount = length(moveDirection);
+    float speed = running ? RUN_SPEED : WALK_SPEED;
+
+    Vec3 previous = getPosition();
+    Vec3 position = previous;
+
+    if (amount > 0.001f) {
+        Vec3 direction = scale(moveDirection, 1.0f / amount);
+
+        // Rotacao: gira aos poucos ate ficar de frente para onde anda
+        float targetYaw = std::atan2(-direction.x, -direction.z) * 180.0f / PI;
+        float difference = angleDifference(m_transform.rotationY, targetYaw);
+        float maxTurn = TURN_SPEED * deltaTime;
+        m_transform.rotationY += clamp(difference, -maxTurn, maxTurn);
+
+        // Translacao
+        position = add(position, scale(direction, speed * deltaTime));
+    }
+
+    scene.resolveMovement(position, previous, RADIUS);
+
+    // Acompanha o chao suavemente (degraus do pier, calcadao)
+    float ground = scene.groundHeight(position.x, position.z);
+    float follow = 1.0f - std::exp(-18.0f * deltaTime);
+    position.y = lerp(previous.y, ground, follow);
+
+    m_transform.positionX = position.x;
+    m_transform.positionY = position.y;
+    m_transform.positionZ = position.z;
+
+    // Animacao de caminhada proporcional a distancia realmente percorrida
+    float travelled = length(subtract({ position.x, 0.0f, position.z }, { previous.x, 0.0f, previous.z }));
+    float targetAmount = (amount > 0.001f && travelled > 0.0001f) ? (running ? 1.4f : 1.0f) : 0.0f;
+    m_walkAmount = lerp(m_walkAmount, targetAmount, 1.0f - std::exp(-10.0f * deltaTime));
+
+    float before = std::floor(m_walkPhase / PI);
+    m_walkPhase += travelled * 2.6f;
+    if (std::floor(m_walkPhase / PI) != before && m_walkAmount > 0.3f) {
+        m_stepped = true;
+    }
+}
+
+void Player::draw(Renderer& renderer, float time) const
 {
     float root[16];
     m_transform.getMatrix(root);
-
-    Transform body;
-    body.positionY = 0.5f;
-    body.scaleX = 0.6f;
-    body.scaleY = 1.0f;
-    body.scaleZ = 0.4f;
-
-    Transform head;
-    head.positionY = 1.25f;
-    head.scaleX = 0.45f;
-    head.scaleY = 0.45f;
-    head.scaleZ = 0.45f;
-
-    Transform nose;
-    nose.positionY = 1.25f;
-    nose.positionZ = -0.27f;
-    nose.scaleX = 0.12f;
-    nose.scaleY = 0.12f;
-    nose.scaleZ = 0.12f;
-
-    drawPart(renderer, root, body, { 0.95f, 0.45f, 0.35f }); // vestido coral
-    drawPart(renderer, root, head, { 0.80f, 0.58f, 0.42f }); // pele
-    drawPart(renderer, root, nose, { 0.25f, 0.15f, 0.10f }); // indica a frente
+    LiaModel::draw(m_model, renderer, root, m_walkPhase, m_walkAmount, time);
 }
 
 Vec3 Player::getPosition() const
@@ -93,7 +99,12 @@ float Player::getYaw() const
     return m_transform.rotationY;
 }
 
-void Player::setGroundHeight(float height)
+float Player::getRadius() const
 {
-    m_transform.positionY = height;
+    return RADIUS;
+}
+
+bool Player::tookStep() const
+{
+    return m_stepped;
 }

@@ -21,6 +21,8 @@ GetUniformLocationFn GetUniformLocation = nullptr;
 UniformMatrix4fvFn UniformMatrix4fv = nullptr;
 Uniform3fFn Uniform3f = nullptr;
 Uniform4fFn Uniform4f = nullptr;
+Uniform1fFn Uniform1f = nullptr;
+Uniform1iFn Uniform1i = nullptr;
 
 namespace {
 
@@ -60,6 +62,8 @@ bool load()
     ok &= loadFunction(UniformMatrix4fv, "glUniformMatrix4fv");
     ok &= loadFunction(Uniform3f, "glUniform3f");
     ok &= loadFunction(Uniform4f, "glUniform4f");
+    ok &= loadFunction(Uniform1f, "glUniform1f");
+    ok &= loadFunction(Uniform1i, "glUniform1i");
 
     return ok;
 }

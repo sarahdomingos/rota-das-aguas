@@ -12,6 +12,7 @@ public:
     bool init();
     bool shouldClose() const;
     void close();
+    void setTitle(const std::string& title);
     void swapBuffers();
     void pollEvents();
 

@@ -55,6 +55,7 @@ if(WIN32)
         gdi32
         user32
         shell32
+        winmm
     )
 
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
