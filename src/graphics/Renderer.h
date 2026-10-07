@@ -1,22 +1,28 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#include "Camera.h"
+#include "Mesh.h"
 #include "Model.h"
-#include "Transform.h"
+#include "Shader.h"
 
+// Centraliza o desenho: ativa o shader, envia as matrizes de camera
+// (view/projection) uma vez por quadro e a matriz de modelo por objeto.
 class Renderer {
 public:
     Renderer();
 
-    bool loadBoat();
+    bool init();
 
-    void render();
+    void beginFrame(const Camera& camera);
 
-    Transform& getBoatTransform();
+    void draw(const Mesh& mesh, const float modelMatrix[16], const Vec3& color);
+    void draw(const Model& model, const float modelMatrix[16], const Vec3& color);
 
 private:
-    Model m_boat;
-    Transform m_boatTransform;
+    Shader m_shader;
+
+    void setObjectUniforms(const float modelMatrix[16], const Vec3& color);
 };
 
 #endif

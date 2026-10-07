@@ -63,6 +63,21 @@ if(WIN32)
             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/glfw3.dll"
     )
 
+    if(MINGW)
+        # Evita depender das DLLs de runtime do C++ do MinGW
+        target_link_libraries(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
+
+        # A glfw3.dll (32-bit) depende da libgcc_s_dw2-1.dll do MinGW
+        get_filename_component(MINGW_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        if(EXISTS "${MINGW_BIN_DIR}/libgcc_s_dw2-1.dll")
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${MINGW_BIN_DIR}/libgcc_s_dw2-1.dll"
+                    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/libgcc_s_dw2-1.dll"
+            )
+        endif()
+    endif()
+
 elseif(APPLE)
 
     target_link_libraries(${PROJECT_NAME}
