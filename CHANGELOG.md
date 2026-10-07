@@ -67,6 +67,7 @@ Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 - `Player` e `Boat` foram reescritos para a cena nova. Os controles do barco mudaram: **R/T giram** (E agora é interagir) e Z/X continuam mudando a escala.
 - `Model` (carregador .obj): a struct `Material` virou `ModelMaterial`, para não conflitar com o material do `Renderer`.
 - `build.bat` e `CMakeLists.txt`: linkam a `winmm` (áudio).
+- `build.bat`: o `-lwinmm` não tinha entrado de fato no arquivo, e o link falhava com `undefined reference to waveOutOpen` e outras funções do waveOut. Corrigido e validado rodando o próprio `build.bat`. O arquivo também voltou a ter quebras de linha do Windows (CRLF), garantidas pelo `.gitattributes`.
 - `README.md`: controles e organização atualizados.
 
 ### Removido
