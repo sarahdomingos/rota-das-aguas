@@ -9,18 +9,17 @@ using namespace MathUtils;
 namespace {
 
 // Paleta da Lia
-const Vec3 SKIN = { 0.56f, 0.37f, 0.26f };
-const Vec3 SKIN_SHADE = { 0.48f, 0.30f, 0.21f };
-const Vec3 HAIR = { 0.12f, 0.075f, 0.055f };
-const Vec3 SHIRT = { 0.98f, 0.76f, 0.24f };
-const Vec3 SHORTS = { 0.23f, 0.40f, 0.62f };
 const Vec3 BAG = { 0.80f, 0.30f, 0.22f };
 const Vec3 BAG_DARK = { 0.58f, 0.20f, 0.15f };
 const Vec3 STRAP = { 0.45f, 0.27f, 0.16f };
-const Vec3 SANDAL = { 0.50f, 0.30f, 0.17f };
 const Vec3 EYES = { 0.07f, 0.045f, 0.035f };
 const Vec3 MOUTH = { 0.45f, 0.20f, 0.17f };
 const Vec3 BLUSH = { 0.72f, 0.40f, 0.36f };
+
+Vec3 darker(const Vec3& c)
+{
+    return { c.x * 0.85f, c.y * 0.82f, c.z * 0.8f };
+}
 
 void appendScaled(Mesh& target, const Mesh& source, const Vec3& scaleBy)
 {
@@ -29,16 +28,16 @@ void appendScaled(Mesh& target, const Mesh& source, const Vec3& scaleBy)
     target.append(source, matrix);
 }
 
-void buildHead(Mesh& body)
+void buildHead(Mesh& body, const CharacterStyle& s)
 {
     const Vec3 headCenter = { 0.0f, 1.22f, 0.0f };
 
-    body.addFrustum({ 0.0f, 0.97f, 0.0f }, { 0.0f, 1.08f, 0.0f }, 0.055f, 0.05f, 6, SKIN);
-    body.addSphere(headCenter, { 0.165f, 0.18f, 0.16f }, 12, 9, SKIN);
+    body.addFrustum({ 0.0f, 0.97f, 0.0f }, { 0.0f, 1.08f, 0.0f }, 0.055f, 0.05f, 6, s.skin);
+    body.addSphere(headCenter, { 0.165f, 0.18f, 0.16f }, 12, 9, s.skin);
 
     // Orelhas
-    body.addSphere({ -0.163f, 1.21f, 0.0f }, { 0.025f, 0.04f, 0.03f }, 6, 4, SKIN_SHADE);
-    body.addSphere({ 0.163f, 1.21f, 0.0f }, { 0.025f, 0.04f, 0.03f }, 6, 4, SKIN_SHADE);
+    body.addSphere({ -0.163f, 1.21f, 0.0f }, { 0.025f, 0.04f, 0.03f }, 6, 4, darker(s.skin));
+    body.addSphere({ 0.163f, 1.21f, 0.0f }, { 0.025f, 0.04f, 0.03f }, 6, 4, darker(s.skin));
 
     // Rosto: olhos, sobrancelhas, nariz, boca e bochechas
     body.addSphere({ -0.058f, 1.235f, -0.147f }, { 0.022f, 0.03f, 0.014f }, 6, 4, EYES);
@@ -46,32 +45,41 @@ void buildHead(Mesh& body)
     body.addSphere({ -0.052f, 1.243f, -0.157f }, { 0.007f, 0.007f, 0.004f }, 4, 3, { 1.0f, 1.0f, 1.0f });
     body.addSphere({ 0.064f, 1.243f, -0.157f }, { 0.007f, 0.007f, 0.004f }, 4, 3, { 1.0f, 1.0f, 1.0f });
 
-    body.addBox({ -0.06f, 1.285f, -0.138f }, { 0.055f, 0.012f, 0.012f }, HAIR);
-    body.addBox({ 0.06f, 1.285f, -0.138f }, { 0.055f, 0.012f, 0.012f }, HAIR);
+    body.addBox({ -0.06f, 1.285f, -0.138f }, { 0.055f, 0.012f, 0.012f }, s.hairColor);
+    body.addBox({ 0.06f, 1.285f, -0.138f }, { 0.055f, 0.012f, 0.012f }, s.hairColor);
 
-    body.addSphere({ 0.0f, 1.195f, -0.16f }, { 0.022f, 0.025f, 0.02f }, 6, 4, SKIN_SHADE);
+    body.addSphere({ 0.0f, 1.195f, -0.16f }, { 0.022f, 0.025f, 0.02f }, 6, 4, darker(s.skin));
     body.addBox({ 0.0f, 1.145f, -0.142f }, { 0.055f, 0.012f, 0.012f }, MOUTH);
 
     body.addSphere({ -0.095f, 1.17f, -0.124f }, { 0.03f, 0.022f, 0.012f }, 6, 4, BLUSH);
     body.addSphere({ 0.095f, 1.17f, -0.124f }, { 0.03f, 0.022f, 0.012f }, 6, 4, BLUSH);
 }
 
-void buildHair(Mesh& body)
+void buildHair(Mesh& body, const CharacterStyle& s)
 {
-    // Cabelo liso: calota sobre a cabeca + bloco caindo atras ate os ombros
-    body.addSphere({ 0.0f, 1.27f, 0.045f }, { 0.182f, 0.185f, 0.172f }, 12, 8, HAIR);
-    body.addBox({ 0.0f, 1.12f, 0.1f }, { 0.34f, 0.3f, 0.13f }, HAIR);
-    body.addBox({ -0.16f, 1.16f, -0.02f }, { 0.05f, 0.22f, 0.2f }, HAIR);
-    body.addBox({ 0.16f, 1.16f, -0.02f }, { 0.05f, 0.22f, 0.2f }, HAIR);
+    switch (s.hair) {
+    case HairStyle::Long:
+        // Cabelo liso: calota sobre a cabeca + bloco caindo atras ate os ombros
+        body.addSphere({ 0.0f, 1.27f, 0.045f }, { 0.182f, 0.185f, 0.172f }, 12, 8, s.hairColor);
+        body.addBox({ 0.0f, 1.12f, 0.1f }, { 0.34f, 0.3f, 0.13f }, s.hairColor);
+        body.addBox({ -0.16f, 1.16f, -0.02f }, { 0.05f, 0.22f, 0.2f }, s.hairColor);
+        body.addBox({ 0.16f, 1.16f, -0.02f }, { 0.05f, 0.22f, 0.2f }, s.hairColor);
+        break;
+    case HairStyle::Short:
+        body.addSphere({ 0.0f, 1.27f, 0.04f }, { 0.176f, 0.17f, 0.168f }, 12, 8, s.hairColor);
+        break;
+    case HairStyle::Bald:
+        break;
+    }
 }
 
-void buildTorso(Mesh& body)
+void buildTorso(Mesh& body, const CharacterStyle& s)
 {
     // Short e camiseta, achatados na profundidade
     Mesh clothes;
-    clothes.addFrustum({ 0.0f, 0.50f, 0.0f }, { 0.0f, 0.68f, 0.0f }, 0.165f, 0.152f, 10, SHORTS);
-    clothes.addFrustum({ 0.0f, 0.64f, 0.0f }, { 0.0f, 0.98f, 0.0f }, 0.15f, 0.168f, 10, SHIRT);
-    clothes.addFrustum({ 0.0f, 0.98f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 0.168f, 0.09f, 10, SHIRT);
+    clothes.addFrustum({ 0.0f, 0.50f, 0.0f }, { 0.0f, 0.68f, 0.0f }, 0.165f, 0.152f, 10, s.shorts);
+    clothes.addFrustum({ 0.0f, 0.64f, 0.0f }, { 0.0f, 0.98f, 0.0f }, 0.15f, 0.168f, 10, s.shirt);
+    clothes.addFrustum({ 0.0f, 0.98f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 0.168f, 0.09f, 10, s.shirt);
     appendScaled(body, clothes, { 1.0f, 1.0f, 0.78f });
 }
 
@@ -89,24 +97,38 @@ void buildBackpack(Mesh& body)
     }
 }
 
-Mesh buildArm()
+void buildStrawHat(Mesh& body, const Vec3& color)
+{
+    body.addFrustum({ 0.0f, 1.33f, 0.02f }, { 0.0f, 1.35f, 0.02f }, 0.34f, 0.33f, 14, color);
+    body.addFrustum({ 0.0f, 1.34f, 0.02f }, { 0.0f, 1.47f, 0.02f }, 0.19f, 0.15f, 12, color);
+    body.addFrustum({ 0.0f, 1.355f, 0.02f }, { 0.0f, 1.385f, 0.02f }, 0.192f, 0.188f, 12, darker(color));
+}
+
+void buildApron(Mesh& body, const Vec3& color)
+{
+    body.addBox({ 0.0f, 0.70f, -0.135f }, { 0.26f, 0.36f, 0.02f }, color);
+    body.addBox({ 0.0f, 0.90f, -0.128f }, { 0.16f, 0.08f, 0.02f }, color);
+    body.addBox({ 0.0f, 0.79f, -0.115f }, { 0.31f, 0.03f, 0.24f }, darker(color));
+}
+
+Mesh buildArm(const CharacterStyle& s)
 {
     Mesh arm;
-    arm.addFrustum({ 0.0f, 0.03f, 0.0f }, { 0.0f, -0.14f, 0.0f }, 0.066f, 0.06f, 8, SHIRT);
-    arm.addFrustum({ 0.0f, -0.10f, 0.0f }, { 0.0f, -0.42f, 0.0f }, 0.046f, 0.039f, 7, SKIN);
-    arm.addSphere({ 0.0f, -0.455f, -0.005f }, { 0.043f, 0.05f, 0.04f }, 6, 4, SKIN);
+    arm.addFrustum({ 0.0f, 0.03f, 0.0f }, { 0.0f, -0.14f, 0.0f }, 0.066f, 0.06f, 8, s.shirt);
+    arm.addFrustum({ 0.0f, -0.10f, 0.0f }, { 0.0f, -0.42f, 0.0f }, 0.046f, 0.039f, 7, s.skin);
+    arm.addSphere({ 0.0f, -0.455f, -0.005f }, { 0.043f, 0.05f, 0.04f }, 6, 4, s.skin);
 
     return arm;
 }
 
-Mesh buildLeg()
+Mesh buildLeg(const CharacterStyle& s)
 {
     Mesh leg;
-    leg.addFrustum({ 0.0f, 0.02f, 0.0f }, { 0.0f, -0.17f, 0.0f }, 0.085f, 0.078f, 8, SHORTS);
-    leg.addFrustum({ 0.0f, -0.15f, 0.0f }, { 0.0f, -0.53f, 0.0f }, 0.058f, 0.044f, 7, SKIN);
+    leg.addFrustum({ 0.0f, 0.02f, 0.0f }, { 0.0f, -0.17f, 0.0f }, 0.085f, 0.078f, 8, s.shorts);
+    leg.addFrustum({ 0.0f, -0.15f, 0.0f }, { 0.0f, -0.53f, 0.0f }, 0.058f, 0.044f, 7, s.skin);
 
     // Pe com sandalia simples
-    leg.addBox({ 0.0f, -0.55f, -0.04f }, { 0.09f, 0.05f, 0.2f }, SANDAL);
+    leg.addBox({ 0.0f, -0.55f, -0.04f }, { 0.09f, 0.05f, 0.2f }, s.shoes);
 
     return leg;
 }
@@ -133,19 +155,45 @@ void drawPart(const Mesh& mesh, Renderer& renderer, const float parent[16], cons
 
 namespace LiaModel {
 
+CharacterStyle liaStyle()
+{
+    CharacterStyle style;
+    style.skin = { 0.56f, 0.37f, 0.26f };
+    style.hairColor = { 0.12f, 0.075f, 0.055f };
+    style.shirt = { 0.98f, 0.76f, 0.24f };
+    style.shorts = { 0.23f, 0.40f, 0.62f };
+    style.shoes = { 0.50f, 0.30f, 0.17f };
+    style.hair = HairStyle::Long;
+    style.accessory = Accessory::Backpack;
+    style.accessoryColor = { 0.80f, 0.30f, 0.22f };
+    style.height = 1.0f;
+    return style;
+}
+
 CharacterModel build()
+{
+    return build(liaStyle());
+}
+
+CharacterModel build(const CharacterStyle& s)
 {
     CharacterModel model;
 
-    buildTorso(model.body);
-    buildHead(model.body);
-    buildHair(model.body);
-    buildBackpack(model.body);
+    buildTorso(model.body, s);
+    buildHead(model.body, s);
+    buildHair(model.body, s);
 
-    model.leftArm = buildArm();
-    model.rightArm = buildArm();
-    model.leftLeg = buildLeg();
-    model.rightLeg = buildLeg();
+    switch (s.accessory) {
+    case Accessory::Backpack: buildBackpack(model.body); break;
+    case Accessory::StrawHat: buildStrawHat(model.body, s.accessoryColor); break;
+    case Accessory::Apron:    buildApron(model.body, s.accessoryColor); break;
+    case Accessory::None:     break;
+    }
+
+    model.leftArm = buildArm(s);
+    model.rightArm = buildArm(s);
+    model.leftLeg = buildLeg(s);
+    model.rightLeg = buildLeg(s);
 
     // Os membros sao desenhados relativos a estes pivos (ombros e quadril)
     model.leftShoulder = { -0.205f, 0.965f, 0.0f };
@@ -157,9 +205,10 @@ CharacterModel build()
 }
 
 void draw(const CharacterModel& model, Renderer& renderer, const float root[16],
-          float walkPhase, float walkAmount, float time)
+          float walkPhase, float walkAmount, float time, float highlight)
 {
     Material skin;
+    skin.highlight = highlight;
     skin.specular = 0.12f;
     skin.shininess = 20.0f;
 

@@ -328,6 +328,50 @@ void MaceioScene::buildBeach()
     }
 }
 
+// ------------------------------------------------------------------ NPCs
+
+void MaceioScene::buildNpcs()
+{
+    // Pescador no pier, de chapeu de palha, olhando para o mar
+    CharacterStyle fisherman;
+    fisherman.skin = { 0.45f, 0.30f, 0.21f };
+    fisherman.hairColor = { 0.62f, 0.60f, 0.57f };
+    fisherman.shirt = { 0.30f, 0.55f, 0.70f };
+    fisherman.shorts = { 0.82f, 0.76f, 0.62f };
+    fisherman.shoes = { 0.25f, 0.20f, 0.15f };
+    fisherman.hair = HairStyle::Short;
+    fisherman.accessory = Accessory::StrawHat;
+    fisherman.accessoryColor = { 0.88f, 0.76f, 0.48f };
+    fisherman.height = 1.3f;
+
+    NPC benedito("Seu Bené", fisherman, "pescador");
+    benedito.place({ PIER_X - 0.6f, PIER_DECK, -10.0f }, -90.0f);
+    m_npcs.push_back(benedito);
+
+    // Vendedora de tapioca no calcadao, de avental
+    CharacterStyle seller;
+    seller.skin = { 0.68f, 0.48f, 0.36f };
+    seller.hairColor = { 0.24f, 0.14f, 0.09f };
+    seller.shirt = { 0.86f, 0.36f, 0.46f };
+    seller.shorts = { 0.26f, 0.30f, 0.55f };
+    seller.shoes = { 0.50f, 0.30f, 0.20f };
+    seller.hair = HairStyle::Long;
+    seller.accessory = Accessory::Apron;
+    seller.accessoryColor = { 0.97f, 0.96f, 0.92f };
+    seller.height = 1.25f;
+
+    NPC graca("Dona Graça", seller, "vendedora");
+    graca.place({ -6.0f, PROMENADE_TOP, 8.2f }, 0.0f);
+    m_npcs.push_back(graca);
+
+    for (size_t i = 0; i < m_npcs.size(); ++i) {
+        Vec3 p = m_npcs[i].getPosition();
+        m_circles.push_back({ p.x, p.z, m_npcs[i].getRadius() });
+        m_interactables.push_back({ Kind::Npc, static_cast<int>(i), add(p, { 0.0f, 1.0f, 0.0f }), 2.4f, 0.9f,
+                                    m_npcs[i].getDialogueId(), InteractionSound::Chime, 0.0f });
+    }
+}
+
 void MaceioScene::buildSky()
 {
     m_skyDome = Mesh::createSkyDome({ 0.80f, 0.89f, 0.97f }, { 0.28f, 0.53f, 0.86f });
@@ -382,12 +426,14 @@ bool MaceioScene::init()
                                     "coqueiro", InteractionSound::Leaves, 0.0f });
     }
 
+    buildNpcs();
+
     return true;
 }
 
 // ------------------------------------------------------------------ atualizacao
 
-void MaceioScene::update(float deltaTime, float time, const Vec3&)
+void MaceioScene::update(float deltaTime, float time, const Vec3& playerPosition)
 {
     m_time = time;
     m_boat.update(time);
@@ -402,6 +448,11 @@ void MaceioScene::update(float deltaTime, float time, const Vec3&)
     }
 
     m_boat.setHighlight(highlightFor(Kind::Boat, 0));
+
+    for (size_t i = 0; i < m_npcs.size(); ++i) {
+        m_npcs[i].update(deltaTime, playerPosition);
+        m_npcs[i].setHighlight(highlightFor(Kind::Npc, static_cast<int>(i)));
+    }
 }
 
 float MaceioScene::highlightFor(Kind kind, int index) const
@@ -717,6 +768,10 @@ void MaceioScene::drawOpaque(Renderer& renderer, float time)
     }
 
     m_boat.draw(renderer, time);
+
+    for (const NPC& npc : m_npcs) {
+        npc.draw(renderer, time);
+    }
 }
 
 void MaceioScene::drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity)
@@ -753,6 +808,10 @@ void MaceioScene::drawShadows(Renderer& renderer, const Vec3& playerPosition)
 
     for (const Palm& palm : m_palms) {
         drawBlobShadow(renderer, palm.top, 2.2f, 0.22f);
+    }
+
+    for (const NPC& npc : m_npcs) {
+        drawBlobShadow(renderer, add(npc.getPosition(), { 0.0f, 0.05f, 0.0f }), 0.45f, 0.35f);
     }
 
     for (const Vec3& spot : m_umbrellaSpots) {
