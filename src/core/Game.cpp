@@ -1,5 +1,6 @@
 #include "Game.h"
 
+#include "AssetPath.h"
 #include "Input.h"
 #include "audio/SoundSynth.h"
 #include "graphics/GLFunctions.h"
@@ -106,6 +107,7 @@ void Game::loadSounds()
 
     m_chime = SoundSynth::chime();
     m_leaves = SoundSynth::leavesRustle();
+    m_blip = SoundSynth::dialogueBlip();
 }
 
 bool Game::init()
@@ -155,7 +157,8 @@ bool Game::init()
         m_wavesVoice = m_audio.play(m_waves, 0.3f, true);
     }
 
-    openDialogue("Lia chegou a Maceió! Atenção: o barco Mundaú está no píer, à espera de você. Explore a orla e as construções.");
+    m_dialogue.loadFile(AssetPath::resolve("assets/dialogos/maceio.txt"));
+    openDialogue("inicio");
 
     // Para testes: ROTA_TEST_STATE=pausa abre o jogo ja na tela de pausa
     const char* testState = std::getenv("ROTA_TEST_STATE");
@@ -265,7 +268,7 @@ void Game::handleInteraction()
         m_audio.play(m_chime, 0.25f, false);
     }
 
-    openDialogue(result.message);
+    openDialogue(result.dialogueId);
 }
 
 void Game::handleBoatControls(float deltaTime)
@@ -329,10 +332,11 @@ void Game::exitState(GameState state)
     }
 }
 
-void Game::openDialogue(const std::string& message)
+void Game::openDialogue(const std::string& id)
 {
-    m_message = message;
-    changeState(GameState::Dialogue);
+    if (m_dialogue.start(id)) {
+        changeState(GameState::Dialogue);
+    }
 }
 
 // ------------------------------------------------------------------ atualizacao
@@ -435,8 +439,21 @@ void Game::update(float deltaTime)
         break;
 
     case GameState::Dialogue:
-    case GameState::Challenge:
         // A Lia fica parada, mas a agua, os coqueiros e o barco continuam animando
+        handleMovement(deltaTime, false);
+        updateWorld(deltaTime);
+        m_dialogue.update(deltaTime);
+
+        // Clique/E/Espaco: mostra a fala inteira, passa para a proxima ou fecha na ultima
+        if (closePressed) {
+            m_audio.play(m_blip, 0.35f, false);
+            if (!m_dialogue.advance()) {
+                changeState(GameState::Playing);
+            }
+        }
+        break;
+
+    case GameState::Challenge:
         handleMovement(deltaTime, false);
         updateWorld(deltaTime);
 
@@ -495,29 +512,48 @@ void Game::renderInterface()
     m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
     m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
 
-    // Caixa de mensagem (DIALOGO e DESAFIO) na parte de baixo da tela
-    bool showMessage = m_state == GameState::Dialogue || m_state == GameState::Challenge;
-    if (showMessage && !m_message.empty()) {
+    // Caixa de dialogo / desafio na parte de baixo da tela
+    bool inDialogue = m_state == GameState::Dialogue && m_dialogue.isActive();
+    bool inChallenge = m_state == GameState::Challenge && !m_message.empty();
+
+    if (inDialogue || inChallenge) {
         float scale = 0.8f * ui;
         float padding = 18.0f * ui;
         float boxWidth = width * 0.7f;
         float textWidth = boxWidth - 2.0f * padding;
         float promptScale = 0.5f * ui;
 
-        std::vector<std::string> lines = m_text.wrap(m_message, scale, textWidth);
-        float boxHeight = lines.size() * m_text.lineHeight(scale) + m_text.lineHeight(promptScale) + 2.0f * padding;
+        // Altura fixa de 3 linhas para a caixa nao "pular" enquanto as letras aparecem
+        float boxHeight = 3.0f * m_text.lineHeight(scale) + m_text.lineHeight(promptScale) + 2.0f * padding;
         float boxX = (width - boxWidth) * 0.5f;
         float boxY = height - boxHeight - 30.0f * ui;
 
-        Color accent = m_state == GameState::Challenge ? Color{ 0.35f, 0.75f, 0.95f, 0.9f } : Color{ 0.98f, 0.76f, 0.24f, 0.9f };
+        Color accent = inChallenge ? Color{ 0.35f, 0.75f, 0.95f, 0.95f } : Color{ 0.98f, 0.76f, 0.24f, 0.95f };
 
-        m_text.drawBox(boxX, boxY, boxWidth, boxHeight, { 0.05f, 0.08f, 0.12f, 0.75f });
+        m_text.drawBox(boxX, boxY, boxWidth, boxHeight, { 0.05f, 0.08f, 0.12f, 0.78f });
         m_text.drawBox(boxX, boxY, boxWidth, 3.0f * ui, accent);
-        float used = m_text.drawWrapped(boxX + padding, boxY + padding, textWidth, m_message, scale, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        const char* prompt = "E, Espaço ou clique: continuar";
-        float promptWidth = m_text.measure(prompt, promptScale);
-        m_text.drawText(boxX + boxWidth - padding - promptWidth, boxY + padding + used, prompt, promptScale, { 1.0f, 1.0f, 1.0f, 0.6f });
+        // Nome de quem fala, numa etiqueta em destaque acima da caixa
+        std::string speaker = inDialogue ? m_dialogue.speaker() : std::string("Desafio");
+        if (!speaker.empty()) {
+            float nameScale = 0.7f * ui;
+            float nameWidth = m_text.measure(speaker, nameScale) + 2.0f * padding;
+            float nameHeight = m_text.lineHeight(nameScale) + 8.0f * ui;
+            m_text.drawBox(boxX, boxY - nameHeight, nameWidth, nameHeight, accent);
+            m_text.drawText(boxX + padding, boxY - nameHeight + 4.0f * ui, speaker, nameScale, { 0.08f, 0.08f, 0.1f, 1.0f });
+        }
+
+        std::string text = inDialogue ? m_dialogue.visibleText() : m_message;
+        Color textColor = inDialogue && m_dialogue.speaker().empty() ? Color{ 0.85f, 0.92f, 1.0f, 1.0f } : Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        m_text.drawWrapped(boxX + padding, boxY + padding, textWidth, text, scale, textColor);
+
+        bool ready = !inDialogue || m_dialogue.isLineComplete();
+        if (ready) {
+            const char* prompt = (inDialogue && !m_dialogue.isLastLine()) ? "E, Espaço ou clique: continuar" : "E, Espaço ou clique: fechar";
+            float promptWidth = m_text.measure(prompt, promptScale);
+            m_text.drawText(boxX + boxWidth - padding - promptWidth, boxY + boxHeight - padding - m_text.lineHeight(promptScale),
+                            prompt, promptScale, { 1.0f, 1.0f, 1.0f, 0.6f });
+        }
     }
 
     // TRANSICAO: escurece ate o preto na primeira metade e clareia na segunda

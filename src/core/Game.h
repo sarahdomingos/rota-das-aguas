@@ -10,6 +10,7 @@
 #include "graphics/Camera.h"
 #include "graphics/Renderer.h"
 #include "scenes/Maceio/MaceioScene.h"
+#include "gameplay/Dialogue.h"
 #include "ui/TextRenderer.h"
 
 #include <string>
@@ -51,6 +52,7 @@ private:
     Sound m_stepsStone[4];
     Sound m_chime;
     Sound m_leaves;
+    Sound m_blip;
 
     int m_musicVoice;
     int m_wavesVoice;
@@ -65,11 +67,12 @@ private:
     GameState m_stateBeforePause;
     float m_transitionTimer;
     TextRenderer m_text;
+    Dialogue m_dialogue;
 
     void changeState(GameState next);
     void enterState(GameState state);
     void exitState(GameState state);
-    void openDialogue(const std::string& message);
+    void openDialogue(const std::string& id);
 
     void loadSounds();
     void update(float deltaTime);

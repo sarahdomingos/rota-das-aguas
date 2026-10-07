@@ -2,6 +2,33 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A3: sistema de diálogo
+
+**Pedido:** executar a etapa A3 do roteiro: um sistema de diálogo genérico e orientado a dados, em que cada capítulo só precisa de um arquivo novo de falas. As interações do barco, da placa e do coqueiro passam a abrir diálogos desse arquivo. Feito na branch `sistema-de-dialogo`, criada a partir da `estados-do-jogo`.
+
+### Adicionado
+- `assets/dialogos/maceio.txt`: as falas do Capítulo 1, em texto simples (UTF-8) e com o formato explicado no topo do arquivo.
+  - Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala`; `Narrador:` é a narração.
+  - Diálogos: `inicio` (chegada a Maceió), `placa` (apresenta Maceió e a Festa das Águas), `barco` (o Mundaú) e `coqueiro`.
+- `src/gameplay/Dialogue.h/.cpp`: carrega os arquivos de diálogo e toca um diálogo pelo id.
+  - As letras aparecem uma a uma (45 por segundo).
+  - Apertar enquanto a fala aparece mostra a fala inteira; apertar de novo passa para a próxima, e na última fecha o diálogo.
+- **Caixa de diálogo:**
+  - o nome de quem fala aparece numa etiqueta amarela em destaque;
+  - a narração fica em azul-claro e sem etiqueta;
+  - a caixa tem altura fixa, para não "pular" enquanto as letras aparecem;
+  - o aviso diz "continuar" ou "fechar" (na última fala).
+- **Som curto** ao avançar as falas (`SoundSynth::dialogueBlip`, gerado por código).
+
+### Alterado
+- **A interação abre um diálogo:** a interação com barco, placa e coqueiro agora devolve o id do diálogo (`Interaction::dialogueId`), e o `Game` abre esse diálogo no estado DIÁLOGO (A2). Fechar a última fala volta para JOGANDO.
+- **Abertura do jogo:** a mensagem de boas-vindas virou o diálogo `inicio`.
+- O teste de desafio (F3) usa a mesma caixa, com borda azul e a etiqueta "Desafio".
+- `README.md`: como editar os diálogos.
+
+### Removido
+- As mensagens de interação escritas direto no código da cena (agora ficam no arquivo de diálogos).
+
 ## 2026-10-07 — Etapa A2: estados do jogo
 
 **Pedido:** executar a etapa A2 do roteiro: uma máquina de estados simples no jogo (jogando, diálogo, desafio, pausa e transição), com tela de pausa e transição com escurecimento. Feito na branch `estados-do-jogo`, criada a partir da `texto-na-tela`.
