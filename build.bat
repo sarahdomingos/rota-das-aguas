@@ -65,6 +65,7 @@ g++ -std=c++17 ^
     -lgdi32 ^
     -luser32 ^
     -lshell32 ^
+    -lwinmm ^
     -static-libgcc ^
     -static-libstdc++ ^
     -o "jogo.exe"
