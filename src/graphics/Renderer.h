@@ -43,6 +43,12 @@ public:
     void beginTransparent();
     void endTransparent();
 
+    // Desenho 2D por cima da cena (interface): coordenadas em pixels, origem no
+    // canto superior esquerdo, sem teste de profundidade e com transparencia.
+    void begin2D(int width, int height);
+    void setMaterial2D(const Texture* texture);
+    void end2D();
+
     // A agua nao e desenhada dentro do casco do barco (veja basic.frag).
     void setBoatMask(const float boatMatrix[16]);
     void clearBoatMask();

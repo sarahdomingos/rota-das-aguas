@@ -118,6 +118,18 @@ void perspective(float fovYDegrees, float aspect, float zNear, float zFar, float
     matrix[14] = (2.0f * zFar * zNear) / (zNear - zFar);
 }
 
+// Equivalente ao glOrtho.
+void orthographic(float left, float right, float bottom, float top, float zNear, float zFar, float matrix[16])
+{
+    identity(matrix);
+    matrix[0] = 2.0f / (right - left);
+    matrix[5] = 2.0f / (top - bottom);
+    matrix[10] = -2.0f / (zFar - zNear);
+    matrix[12] = -(right + left) / (right - left);
+    matrix[13] = -(top + bottom) / (top - bottom);
+    matrix[14] = -(zFar + zNear) / (zFar - zNear);
+}
+
 // Equivalente ao gluLookAt.
 void lookAt(const Vec3& eye, const Vec3& target, const Vec3& up, float matrix[16])
 {

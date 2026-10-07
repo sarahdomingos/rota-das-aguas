@@ -2,6 +2,44 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A1: texto na tela
+
+**Pedido:** executar a próxima etapa do roteiro (A1, texto na tela): fonte com acentos do português desenhada em 2D por cima da cena, caixa de diálogo semitransparente, mensagens de interação fora do título da janela e uma dica discreta de controles. A API precisa ser reutilizável por diálogo, HUD e inventário (etapas A3 e A6). Feito na branch `texto-na-tela`, criada a partir da `prototipo-opengl`.
+
+### Adicionado
+- `src/ui/TextRenderer.h/.cpp`: texto na tela reutilizável.
+  - A fonte (Segoe UI) é desenhada uma vez pelo próprio Windows (GDI) num atlas com os caracteres Latin-1 (32 a 255), que cobre todos os acentos do português (á, à, ã, â, ç, é, ê, í, ó, ô, õ, ú). O atlas vira textura com transparência.
+  - Os textos são lidos em UTF-8.
+  - API: `drawText`, `drawWrapped` (quebra de linha), `drawBox` (fundo semitransparente), `measure`, `wrap` e `lineHeight`, com cor e escala.
+- **Caixa de mensagem** na parte de baixo da tela, com fundo escuro semitransparente e um filete amarelo no topo. Ela some sozinha depois de 6 segundos, com um esmaecimento no fim.
+- **Mensagem de boas-vindas** ao abrir o jogo.
+- **Linha discreta de dica de controles** no canto superior esquerdo.
+- O tamanho do texto acompanha a altura da janela.
+- `Renderer`: modo 2D (`begin2D`, `setMaterial2D`, `end2D`), com projeção ortográfica em pixels, sem teste de profundidade e com transparência.
+- `Texture::createRGBA` (textura com canal alfa, sem mipmaps) e `MathUtils::orthographic`.
+
+### Alterado
+- As mensagens de interação (barco, placa, coqueiros) saíram do título da janela e passaram para a caixa na tela. O título agora é fixo.
+- `basic.frag`: a textura também multiplica a transparência (as texturas RGB continuam opacas).
+- `README.md`: pasta `src/ui` na organização do código.
+
+### Removido
+- A dica de controles e as mensagens no título da janela.
+
+## 2026-10-07 — Roteiro de criação do jogo
+
+**Pedido:** organizar os próximos passos do jogo num roteiro.
+
+### Adicionado
+- Roteiro de criação do jogo (documento do projeto) com as fases:
+  - A: fundações;
+  - B: capítulo 1;
+  - C: troca de cena;
+  - D: capítulos 2 a 5;
+  - E: qualidade visual e som;
+  - F: polimento.
+- A próxima etapa indicada foi a A1 (texto na tela), feita na entrada acima.
+
 ## 2026-10-07 — Cena de Maceió: modelagem, luz, texturas, água, mouse, colisão e som
 
 **Pedido:** evoluir o protótipo para o Capítulo 1 (Maceió). Os itens aprovados foram: modelo low-poly da Lia, cena da orla de Maceió, hierarquia de transformações, colisão, câmera com mouse e interação, som e música, iluminação Phong, texturas e água animada. A água não pode entrar no barco quando ele oscila. A Lia foi simplificada a pedido da usuária (cabelo liso em bloco, sandália simples).

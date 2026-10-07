@@ -34,5 +34,6 @@ A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/sh
 - `src/models` → geradores de modelos reutilizáveis: `LiaModel`, `CoastalModels` (coqueiro, pedra, nuvem, guarda-sol), `UrbanModels` (casa, píer, poste, placa)
 - `src/scenes` → `Scene` (interface de cada cidade) e `Maceio/MaceioScene`
 - `src/entities` → `Player` (Lia), `Boat` (Mundaú)
+- `src/ui` → `TextRenderer` (texto na tela com acentos, caixas de diálogo)
 - `src/audio` → `AudioEngine` (mixer sobre o waveOut/winmm) e `SoundSynth` (música e efeitos sintetizados)
 - `assets/shaders` → `basic.vert`, `basic.frag`

@@ -10,6 +10,7 @@
 #include "graphics/Camera.h"
 #include "graphics/Renderer.h"
 #include "scenes/Maceio/MaceioScene.h"
+#include "ui/TextRenderer.h"
 
 #include <string>
 
@@ -48,7 +49,8 @@ private:
     float m_time;
     float m_dragDistance;
     float m_messageTimer;
-    std::string m_baseTitle;
+    std::string m_message;
+    TextRenderer m_text;
 
     void loadSounds();
     void update(float deltaTime);
@@ -56,6 +58,7 @@ private:
     void handleInteraction();
     void handleBoatControls(float deltaTime);
     void render();
+    void renderInterface();
 };
 
 #endif

@@ -55,6 +55,7 @@ void normalMatrix(const float model[16], float result[16]);
 void inverseAffine(const float m[16], float result[16]);
 void multiply(const float a[16], const float b[16], float result[16]);
 void perspective(float fovYDegrees, float aspect, float zNear, float zFar, float matrix[16]);
+void orthographic(float left, float right, float bottom, float top, float zNear, float zFar, float matrix[16]);
 void lookAt(const Vec3& eye, const Vec3& target, const Vec3& up, float matrix[16]);
 
 }
