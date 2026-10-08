@@ -25,6 +25,9 @@ Sound chime();
 // Folhas do coqueiro balancando.
 Sound leavesRustle();
 
+// "Clique" suave ao avancar uma fala do dialogo.
+Sound dialogueBlip();
+
 }
 
 #endif

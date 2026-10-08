@@ -2,6 +2,57 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A3: sistema de diálogo
+
+**Pedido:** executar a etapa A3 do roteiro: um sistema de diálogo genérico e orientado a dados, em que cada capítulo só precisa de um arquivo novo de falas. As interações do barco, da placa e do coqueiro passam a abrir diálogos desse arquivo. Feito na branch `sistema-de-dialogo`, criada a partir da `estados-do-jogo`.
+
+### Adicionado
+- `assets/dialogos/maceio.txt`: as falas do Capítulo 1, em texto simples (UTF-8) e com o formato explicado no topo do arquivo.
+  - Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala`; `Narrador:` é a narração.
+  - Diálogos: `inicio` (chegada a Maceió), `placa` (apresenta Maceió e a Festa das Águas), `barco` (o Mundaú) e `coqueiro`.
+- `src/gameplay/Dialogue.h/.cpp`: carrega os arquivos de diálogo e toca um diálogo pelo id.
+  - As letras aparecem uma a uma (45 por segundo).
+  - Apertar enquanto a fala aparece mostra a fala inteira; apertar de novo passa para a próxima, e na última fecha o diálogo.
+- **Caixa de diálogo:**
+  - o nome de quem fala aparece numa etiqueta amarela em destaque;
+  - a narração fica em azul-claro e sem etiqueta;
+  - a caixa tem altura fixa, para não "pular" enquanto as letras aparecem;
+  - o aviso diz "continuar" ou "fechar" (na última fala).
+- **Som curto** ao avançar as falas (`SoundSynth::dialogueBlip`, gerado por código).
+
+### Alterado
+- **A interação abre um diálogo:** a interação com barco, placa e coqueiro agora devolve o id do diálogo (`Interaction::dialogueId`), e o `Game` abre esse diálogo no estado DIÁLOGO (A2). Fechar a última fala volta para JOGANDO.
+- **Abertura do jogo:** a mensagem de boas-vindas virou o diálogo `inicio`.
+- O teste de desafio (F3) usa a mesma caixa, com borda azul e a etiqueta "Desafio".
+- `README.md`: como editar os diálogos.
+
+### Removido
+- As mensagens de interação escritas direto no código da cena (agora ficam no arquivo de diálogos).
+
+## 2026-10-07 — Etapa A2: estados do jogo
+
+**Pedido:** executar a etapa A2 do roteiro: uma máquina de estados simples no jogo (jogando, diálogo, desafio, pausa e transição), com tela de pausa e transição com escurecimento. Feito na branch `estados-do-jogo`, criada a partir da `texto-na-tela`.
+
+### Adicionado
+- **Estados do jogo** (`enum class GameState` em `src/core/Game.h`): JOGANDO, DIÁLOGO, DESAFIO, PAUSA e TRANSIÇÃO. A troca de estado passa por `changeState`, que chama `exitState` do estado antigo e `enterState` do novo.
+  - **JOGANDO:** único estado em que a Lia anda, interage e controla o barco.
+  - **DIÁLOGO:** a mensagem de interação (e a de boas-vindas) fica na caixa até ser fechada com E, Espaço ou clique. A Lia fica parada, mas a água, os coqueiros e o barco continuam animando, e a câmera ainda pode ser girada.
+  - **DESAFIO:** por enquanto é só um teste (F3), com uma caixa de borda azul. Congela a Lia como o diálogo e será usado pelos desafios de matemática.
+  - **PAUSA:** o mundo inteiro para. Mostra a tela "Pausa" com os controles; Esc ou P continua e Q sai do jogo. A música fica mais baixa durante a pausa.
+  - **TRANSIÇÃO:** escurece até o preto e clareia de volta em 1,2 segundo. Por enquanto é só um teste (F2) e será usada na troca de cena.
+- Aviso "E, Espaço ou clique: continuar" na caixa de mensagem.
+- Teste: `ROTA_TEST_STATE=pausa` abre o jogo já pausado. A captura automática (`ROTA_AUTOSHOT`) passou a contar o tempo real, para funcionar também na pausa.
+
+### Alterado
+- **Esc não fecha mais o jogo direto:** abre e fecha a pausa (P também). Para sair, use Q na pausa.
+- A mensagem não some mais sozinha depois de 6 segundos: ela abre o estado de diálogo e espera ser fechada.
+- A dica de controles do canto inclui "Esc/P: pausa".
+- `TextRenderer`: há um espaço entre os caracteres no atlas da fonte, para não aparecerem pontinhos do caractere vizinho.
+- `README.md`: controles novos.
+
+### Removido
+- O fechamento do jogo pelo Esc e o temporizador da caixa de mensagem.
+
 ## 2026-10-07 — Etapa A1: texto na tela
 
 **Pedido:** executar a próxima etapa do roteiro (A1, texto na tela): fonte com acentos do português desenhada em 2D por cima da cena, caixa de diálogo semitransparente, mensagens de interação fora do título da janela e uma dica discreta de controles. A API precisa ser reutilizável por diálogo, HUD e inventário (etapas A3 e A6). Feito na branch `texto-na-tela`, criada a partir da `prototipo-opengl`.

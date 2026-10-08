@@ -1,5 +1,6 @@
 #include "Game.h"
 
+#include "AssetPath.h"
 #include "Input.h"
 #include "audio/SoundSynth.h"
 #include "graphics/GLFunctions.h"
@@ -16,7 +17,7 @@ using namespace MathUtils;
 namespace {
 
 const char* TITLE = "Rota das Águas - Maceió";
-const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  M: música";
+const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  M: música  ·  Esc/P: pausa";
 
 const float MUSIC_VOLUME = 0.28f;
 
@@ -59,7 +60,17 @@ void saveScreenshot(const char* path, int width, int height)
     file.write(reinterpret_cast<const char*>(pixels.data()), pixels.size());
     std::cout << "Captura salva em " << path << std::endl;
 }
-const float MESSAGE_SECONDS = 6.0f;
+// Duracao total da transicao (metade escurecendo, metade clareando)
+const float TRANSITION_SECONDS = 1.2f;
+
+const char* PAUSE_LINES[] = {
+    "WASD ou setas: andar  ·  Shift: correr",
+    "Arrastar o mouse: girar a câmera  ·  Roda: zoom",
+    "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
+    "R / T: girar o barco  ·  Z / X: tamanho do barco",
+    "M: música  ·  F12: captura de tela",
+    "F2: teste de transição  ·  F3: teste de desafio"
+};
 
 }
 
@@ -72,7 +83,9 @@ Game::Game()
       m_stepCounter(0),
       m_time(0.0f),
       m_dragDistance(0.0f),
-      m_messageTimer(0.0f)
+      m_state(GameState::Playing),
+      m_stateBeforePause(GameState::Playing),
+      m_transitionTimer(0.0f)
 {
 }
 
@@ -94,6 +107,7 @@ void Game::loadSounds()
 
     m_chime = SoundSynth::chime();
     m_leaves = SoundSynth::leavesRustle();
+    m_blip = SoundSynth::dialogueBlip();
 }
 
 bool Game::init()
@@ -115,8 +129,6 @@ bool Game::init()
         std::cerr << "Nao foi possivel criar a fonte do texto na tela." << std::endl;
     }
 
-    m_message = "Lia chegou a Maceió! Atenção: o barco Mundaú está no píer, à espera de você. Explore a orla e as construções.";
-    m_messageTimer = MESSAGE_SECONDS;
     Input::init(m_window.getNativeWindow());
 
     if (!m_scene->init()) {
@@ -145,12 +157,23 @@ bool Game::init()
         m_wavesVoice = m_audio.play(m_waves, 0.3f, true);
     }
 
+    m_dialogue.loadFile(AssetPath::resolve("assets/dialogos/maceio.txt"));
+    openDialogue("inicio");
+
+    // Para testes: ROTA_TEST_STATE=pausa abre o jogo ja na tela de pausa
+    const char* testState = std::getenv("ROTA_TEST_STATE");
+    if (testState != nullptr && std::string(testState) == "pausa") {
+        m_stateBeforePause = m_state;
+        changeState(GameState::Paused);
+    }
+
     return true;
 }
 
 void Game::run()
 {
     double previousTime = glfwGetTime();
+    double startTime = previousTime;
 
     while (!m_window.shouldClose()) {
         double currentTime = glfwGetTime();
@@ -170,7 +193,7 @@ void Game::run()
         if (Input::wasKeyPressed(GLFW_KEY_F12)) {
             saveScreenshot("captura.bmp", m_window.getWidth(), m_window.getHeight());
         }
-        if (autoShot != nullptr && m_time > static_cast<float>(std::atof(autoShot))) {
+        if (autoShot != nullptr && currentTime - startTime > std::atof(autoShot)) {
             saveScreenshot("autoshot.bmp", m_window.getWidth(), m_window.getHeight());
             m_window.close();
         }
@@ -245,8 +268,7 @@ void Game::handleInteraction()
         m_audio.play(m_chime, 0.25f, false);
     }
 
-    m_message = result.message;
-    m_messageTimer = MESSAGE_SECONDS;
+    openDialogue(result.dialogueId);
 }
 
 void Game::handleBoatControls(float deltaTime)
@@ -268,48 +290,78 @@ void Game::handleBoatControls(float deltaTime)
     }
 }
 
-void Game::update(float deltaTime)
+// ------------------------------------------------------------------ estados
+
+void Game::changeState(GameState next)
 {
-    m_time += deltaTime;
-
-    // No modo de captura automatica o teclado e o mouse sao ignorados
-    if (std::getenv("ROTA_AUTOSHOT") == nullptr) {
-        Input::update();
+    if (next == m_state) {
+        return;
     }
 
-    if (Input::isKeyDown(GLFW_KEY_ESCAPE)) {
-        m_window.close();
-    }
+    exitState(m_state);
+    m_state = next;
+    enterState(next);
+}
 
-    if (Input::wasKeyPressed(GLFW_KEY_M)) {
-        m_musicOn = !m_musicOn;
+void Game::enterState(GameState state)
+{
+    switch (state) {
+    case GameState::Paused:
+        // Musica mais baixa enquanto o jogo esta pausado
+        m_audio.setVolume(m_musicVoice, m_musicOn ? MUSIC_VOLUME * 0.35f : 0.0f);
+        break;
+    case GameState::Transition:
+        m_transitionTimer = 0.0f;
+        break;
+    case GameState::Challenge:
+        m_message = "Desafio (teste): aqui vão aparecer os desafios de matemática.";
+        break;
+    default:
+        break;
+    }
+}
+
+void Game::exitState(GameState state)
+{
+    switch (state) {
+    case GameState::Paused:
         m_audio.setVolume(m_musicVoice, m_musicOn ? MUSIC_VOLUME : 0.0f);
+        break;
+    default:
+        break;
     }
+}
 
-    handleCamera();
-    handleBoatControls(deltaTime);
+void Game::openDialogue(const std::string& id)
+{
+    if (m_dialogue.start(id)) {
+        changeState(GameState::Dialogue);
+    }
+}
 
+// ------------------------------------------------------------------ atualizacao
+
+void Game::handleMovement(float deltaTime, bool allowMove)
+{
     // Movimento relativo a camera: W anda para onde a camera olha
     Vec3 forward = forwardFromYaw(m_camera.getYaw());
     Vec3 right = { -forward.z, 0.0f, forward.x };
     Vec3 move = { 0.0f, 0.0f, 0.0f };
 
-    if (Input::isKeyDown(GLFW_KEY_W) || Input::isKeyDown(GLFW_KEY_UP))    move = add(move, forward);
-    if (Input::isKeyDown(GLFW_KEY_S) || Input::isKeyDown(GLFW_KEY_DOWN))  move = subtract(move, forward);
-    if (Input::isKeyDown(GLFW_KEY_D) || Input::isKeyDown(GLFW_KEY_RIGHT)) move = add(move, right);
-    if (Input::isKeyDown(GLFW_KEY_A) || Input::isKeyDown(GLFW_KEY_LEFT))  move = subtract(move, right);
+    if (allowMove) {
+        if (Input::isKeyDown(GLFW_KEY_W) || Input::isKeyDown(GLFW_KEY_UP))    move = add(move, forward);
+        if (Input::isKeyDown(GLFW_KEY_S) || Input::isKeyDown(GLFW_KEY_DOWN))  move = subtract(move, forward);
+        if (Input::isKeyDown(GLFW_KEY_D) || Input::isKeyDown(GLFW_KEY_RIGHT)) move = add(move, right);
+        if (Input::isKeyDown(GLFW_KEY_A) || Input::isKeyDown(GLFW_KEY_LEFT))  move = subtract(move, right);
+    }
 
-    bool running = Input::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Input::isKeyDown(GLFW_KEY_RIGHT_SHIFT);
+    bool running = allowMove && (Input::isKeyDown(GLFW_KEY_LEFT_SHIFT) || Input::isKeyDown(GLFW_KEY_RIGHT_SHIFT));
 
     m_player.update(deltaTime, normalize(move), running, *m_scene);
 
-    Vec3 position = m_player.getPosition();
-    m_scene->update(deltaTime, m_time, position);
-
-    handleInteraction();
-
     // Sons de passos conforme o piso
     if (m_player.tookStep()) {
+        Vec3 position = m_player.getPosition();
         int variation = (m_stepCounter++) % 4;
         Surface surface = m_scene->surfaceAt(position.x, position.z);
         const Sound& step = surface == Surface::Wood ? m_stepsWood[variation]
@@ -317,18 +369,112 @@ void Game::update(float deltaTime)
                           : m_stepsSand[variation];
         m_audio.play(step, running ? 0.45f : 0.32f, false);
     }
+}
+
+void Game::updateWorld(float deltaTime)
+{
+    Vec3 position = m_player.getPosition();
+    m_scene->update(deltaTime, m_time, position);
 
     // Ondas mais altas perto do mar
     float closeness = clamp(1.0f - m_scene->distanceToSea(position) / 30.0f, 0.0f, 1.0f);
     m_audio.setVolume(m_wavesVoice, 0.12f + 0.5f * closeness);
 
-    if (m_messageTimer > 0.0f) {
-        m_messageTimer -= deltaTime;
-    }
-
     const Scene& scene = *m_scene;
     m_camera.setAspect(m_window.getAspect());
     m_camera.update(position, deltaTime, [&scene](float x, float z) { return scene.groundHeight(x, z); });
+}
+
+void Game::update(float deltaTime)
+{
+    // No modo de captura automatica o teclado e o mouse sao ignorados
+    if (std::getenv("ROTA_AUTOSHOT") == nullptr) {
+        Input::update();
+    }
+
+    if (Input::wasKeyPressed(GLFW_KEY_M)) {
+        m_musicOn = !m_musicOn;
+        float volume = m_state == GameState::Paused ? MUSIC_VOLUME * 0.35f : MUSIC_VOLUME;
+        m_audio.setVolume(m_musicVoice, m_musicOn ? volume : 0.0f);
+    }
+
+    bool pauseKey = Input::wasKeyPressed(GLFW_KEY_ESCAPE) || Input::wasKeyPressed(GLFW_KEY_P);
+
+    // PAUSA: o mundo para; so da para continuar ou sair do jogo
+    if (m_state == GameState::Paused) {
+        if (pauseKey) {
+            changeState(m_stateBeforePause);
+        }
+        else if (Input::wasKeyPressed(GLFW_KEY_Q)) {
+            m_window.close();
+        }
+        return;
+    }
+
+    if (pauseKey && m_state != GameState::Transition) {
+        m_stateBeforePause = m_state;
+        changeState(GameState::Paused);
+        return;
+    }
+
+    m_time += deltaTime;
+    handleCamera();
+
+    bool closePressed = Input::wasKeyPressed(GLFW_KEY_E) || Input::wasKeyPressed(GLFW_KEY_SPACE) ||
+                        (Input::wasMouseReleased(GLFW_MOUSE_BUTTON_LEFT) && m_dragDistance < 6.0f);
+
+    switch (m_state) {
+    case GameState::Playing:
+        handleBoatControls(deltaTime);
+        handleMovement(deltaTime, true);
+        updateWorld(deltaTime);
+        handleInteraction();
+
+        if (Input::wasKeyPressed(GLFW_KEY_F2)) {
+            changeState(GameState::Transition);
+        }
+        else if (Input::wasKeyPressed(GLFW_KEY_F3)) {
+            changeState(GameState::Challenge);
+        }
+        break;
+
+    case GameState::Dialogue:
+        // A Lia fica parada, mas a agua, os coqueiros e o barco continuam animando
+        handleMovement(deltaTime, false);
+        updateWorld(deltaTime);
+        m_dialogue.update(deltaTime);
+
+        // Clique/E/Espaco: mostra a fala inteira, passa para a proxima ou fecha na ultima
+        if (closePressed) {
+            m_audio.play(m_blip, 0.35f, false);
+            if (!m_dialogue.advance()) {
+                changeState(GameState::Playing);
+            }
+        }
+        break;
+
+    case GameState::Challenge:
+        handleMovement(deltaTime, false);
+        updateWorld(deltaTime);
+
+        if (closePressed) {
+            changeState(GameState::Playing);
+        }
+        break;
+
+    case GameState::Transition:
+        handleMovement(deltaTime, false);
+        updateWorld(deltaTime);
+
+        m_transitionTimer += deltaTime;
+        if (m_transitionTimer >= TRANSITION_SECONDS) {
+            changeState(GameState::Playing);
+        }
+        break;
+
+    case GameState::Paused:
+        break;
+    }
 }
 
 void Game::render()
@@ -366,22 +512,85 @@ void Game::renderInterface()
     m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
     m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
 
-    // Caixa de mensagem na parte de baixo, sumindo no ultimo meio segundo
-    if (m_messageTimer > 0.0f && !m_message.empty()) {
-        float fade = m_messageTimer < 0.5f ? m_messageTimer / 0.5f : 1.0f;
+    // Caixa de dialogo / desafio na parte de baixo da tela
+    bool inDialogue = m_state == GameState::Dialogue && m_dialogue.isActive();
+    bool inChallenge = m_state == GameState::Challenge && !m_message.empty();
+
+    if (inDialogue || inChallenge) {
         float scale = 0.8f * ui;
         float padding = 18.0f * ui;
         float boxWidth = width * 0.7f;
         float textWidth = boxWidth - 2.0f * padding;
+        float promptScale = 0.5f * ui;
 
-        std::vector<std::string> lines = m_text.wrap(m_message, scale, textWidth);
-        float boxHeight = lines.size() * m_text.lineHeight(scale) + 2.0f * padding;
+        // Altura fixa de 3 linhas para a caixa nao "pular" enquanto as letras aparecem
+        float boxHeight = 3.0f * m_text.lineHeight(scale) + m_text.lineHeight(promptScale) + 2.0f * padding;
         float boxX = (width - boxWidth) * 0.5f;
         float boxY = height - boxHeight - 30.0f * ui;
 
-        m_text.drawBox(boxX, boxY, boxWidth, boxHeight, { 0.05f, 0.08f, 0.12f, 0.72f * fade });
-        m_text.drawBox(boxX, boxY, boxWidth, 3.0f * ui, { 0.98f, 0.76f, 0.24f, 0.9f * fade });
-        m_text.drawWrapped(boxX + padding, boxY + padding, textWidth, m_message, scale, { 1.0f, 1.0f, 1.0f, fade });
+        Color accent = inChallenge ? Color{ 0.35f, 0.75f, 0.95f, 0.95f } : Color{ 0.98f, 0.76f, 0.24f, 0.95f };
+
+        m_text.drawBox(boxX, boxY, boxWidth, boxHeight, { 0.05f, 0.08f, 0.12f, 0.78f });
+        m_text.drawBox(boxX, boxY, boxWidth, 3.0f * ui, accent);
+
+        // Nome de quem fala, numa etiqueta em destaque acima da caixa
+        std::string speaker = inDialogue ? m_dialogue.speaker() : std::string("Desafio");
+        if (!speaker.empty()) {
+            float nameScale = 0.7f * ui;
+            float nameWidth = m_text.measure(speaker, nameScale) + 2.0f * padding;
+            float nameHeight = m_text.lineHeight(nameScale) + 8.0f * ui;
+            m_text.drawBox(boxX, boxY - nameHeight, nameWidth, nameHeight, accent);
+            m_text.drawText(boxX + padding, boxY - nameHeight + 4.0f * ui, speaker, nameScale, { 0.08f, 0.08f, 0.1f, 1.0f });
+        }
+
+        std::string text = inDialogue ? m_dialogue.visibleText() : m_message;
+        Color textColor = inDialogue && m_dialogue.speaker().empty() ? Color{ 0.85f, 0.92f, 1.0f, 1.0f } : Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        m_text.drawWrapped(boxX + padding, boxY + padding, textWidth, text, scale, textColor);
+
+        bool ready = !inDialogue || m_dialogue.isLineComplete();
+        if (ready) {
+            const char* prompt = (inDialogue && !m_dialogue.isLastLine()) ? "E, Espaço ou clique: continuar" : "E, Espaço ou clique: fechar";
+            float promptWidth = m_text.measure(prompt, promptScale);
+            m_text.drawText(boxX + boxWidth - padding - promptWidth, boxY + boxHeight - padding - m_text.lineHeight(promptScale),
+                            prompt, promptScale, { 1.0f, 1.0f, 1.0f, 0.6f });
+        }
+    }
+
+    // TRANSICAO: escurece ate o preto na primeira metade e clareia na segunda
+    if (m_state == GameState::Transition) {
+        float half = TRANSITION_SECONDS * 0.5f;
+        float alpha = m_transitionTimer < half ? m_transitionTimer / half : 1.0f - (m_transitionTimer - half) / half;
+        m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, clamp(alpha, 0.0f, 1.0f) });
+    }
+
+    // PAUSA: escurece a cena parada e mostra os controles
+    if (m_state == GameState::Paused) {
+        m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.55f });
+
+        float titleScale = 1.6f * ui;
+        float lineScale = 0.62f * ui;
+        float panelWidth = 760.0f * ui;
+        float panelX = (width - panelWidth) * 0.5f;
+        float y = height * 0.18f;
+
+        const char* title = "Pausa";
+        m_text.drawText((width - m_text.measure(title, titleScale)) * 0.5f, y, title, titleScale, { 1.0f, 0.85f, 0.4f, 1.0f });
+        y += m_text.lineHeight(titleScale) + 16.0f * ui;
+
+        int count = static_cast<int>(sizeof(PAUSE_LINES) / sizeof(PAUSE_LINES[0]));
+        float panelHeight = count * m_text.lineHeight(lineScale) + 32.0f * ui;
+        m_text.drawBox(panelX, y, panelWidth, panelHeight, { 0.05f, 0.08f, 0.12f, 0.8f });
+        y += 16.0f * ui;
+
+        for (int i = 0; i < count; ++i) {
+            m_text.drawText(panelX + 24.0f * ui, y, PAUSE_LINES[i], lineScale, { 1.0f, 1.0f, 1.0f, 0.95f });
+            y += m_text.lineHeight(lineScale);
+        }
+
+        y += 32.0f * ui;
+        const char* options = "Esc ou P: continuar    ·    Q: sair do jogo";
+        float optionsScale = 0.8f * ui;
+        m_text.drawText((width - m_text.measure(options, optionsScale)) * 0.5f, y, options, optionsScale, { 1.0f, 1.0f, 1.0f, 1.0f });
     }
 
     m_text.end();

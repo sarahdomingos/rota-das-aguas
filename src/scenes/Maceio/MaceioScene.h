@@ -66,7 +66,7 @@ private:
         Vec3 position;
         float range;
         float pickRadius;
-        std::string message;
+        std::string dialogueId;
         InteractionSound sound;
         float flash;
     };

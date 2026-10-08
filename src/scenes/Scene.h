@@ -25,7 +25,7 @@ enum class InteractionSound {
 };
 
 struct Interaction {
-    std::string message;
+    std::string dialogueId;     // bloco do arquivo de dialogos da cena
     InteractionSound sound;
 };
 

@@ -414,4 +414,20 @@ Sound leavesRustle()
     return sound;
 }
 
+Sound dialogueBlip()
+{
+    Sound sound;
+    std::size_t length = static_cast<std::size_t>(0.07f * RATE);
+    sound.samples.resize(length);
+
+    for (std::size_t i = 0; i < length; ++i) {
+        float t = i / RATE;
+        float envelope = std::fmin(t / 0.003f, 1.0f) * std::exp(-t * 60.0f);
+        sound.samples[i] = (std::sin(2.0f * PI * 990.0f * t) + 0.3f * std::sin(2.0f * PI * 1980.0f * t)) * envelope;
+    }
+
+    normalize(sound, 0.4f);
+    return sound;
+}
+
 }

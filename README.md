@@ -17,6 +17,9 @@ build\RotaDasAguas.exe
 # Capítulo 1 — Maceió
 A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/shaders`), iluminação Phong, neblina e texturas geradas por código. Tem areia, calçadão, casario colorido, píer de madeira, coqueiros que balançam, pedras, guarda-sóis e o barco Mundaú atracado, acompanhando as ondas. A Lia é um modelo low-poly gerado por código, com braços e pernas animados. Música e efeitos sonoros também são gerados por código (veja `CREDITS.md`).
 
+# Diálogos
+As falas ficam em `assets/dialogos/` (um arquivo por capítulo, UTF-8). Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala` (use `Narrador:` para narração). O formato está explicado no topo de `assets/dialogos/maceio.txt`. Basta editar o arquivo e abrir o jogo de novo; não é preciso recompilar.
+
 # Controles
 - W A S D / setas → andar (relativo à câmera)
 - Shift → correr
@@ -24,9 +27,11 @@ A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/sh
 - Roda do mouse → zoom
 - Clique ou E → interagir com o objeto em destaque (barco, placa, coqueiros)
 - R / T → girar o barco · Z / X → diminuir / aumentar o barco
+- E, Espaço ou clique → fecha a mensagem na tela
+- Esc ou P → pausa (na pausa: Q sai do jogo)
+- F2 → teste de transição (escurece e volta) · F3 → teste de desafio
 - M → liga/desliga a música
 - F12 → salva uma captura (`captura.bmp`)
-- Esc → sair
 
 # Organização do código
 - `src/core` → `Game` (loop principal), `Window`, `Input`, `AssetPath`

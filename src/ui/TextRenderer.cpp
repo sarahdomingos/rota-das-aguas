@@ -42,8 +42,12 @@ bool TextRenderer::init(int pixelHeight, const char* fontName)
 
     int cellWidth = metrics.tmMaxCharWidth + 4;
     int cellHeight = metrics.tmHeight + 2;
-    int atlasWidth = nextPowerOfTwo(cellWidth * COLUMNS);
-    int atlasHeight = nextPowerOfTwo(cellHeight * ROWS);
+    // Espaco vazio entre as celulas evita que a filtragem "puxe" pixels do caractere vizinho
+    const int gap = 4;
+    int strideX = cellWidth + gap;
+    int strideY = cellHeight + gap;
+    int atlasWidth = nextPowerOfTwo(strideX * COLUMNS);
+    int atlasHeight = nextPowerOfTwo(strideY * ROWS);
 
     // Bitmap de 32 bits de cima para baixo, onde o Windows desenha os caracteres
     BITMAPINFO info;
@@ -75,8 +79,8 @@ bool TextRenderer::init(int pixelHeight, const char* fontName)
         if (code >= 0x7F && code < 0xA0) continue;
 
         int index = code - FIRST_CHAR;
-        int x = (index % COLUMNS) * cellWidth;
-        int y = (index / COLUMNS) * cellHeight;
+        int x = (index % COLUMNS) * strideX;
+        int y = (index / COLUMNS) * strideY;
 
         wchar_t character = static_cast<wchar_t>(code); // Latin-1 = mesmos codigos do Unicode
         TextOutW(dc, x + 2, y + 1, &character, 1);

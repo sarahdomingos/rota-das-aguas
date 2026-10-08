@@ -370,16 +370,16 @@ bool MaceioScene::init()
 
     // Objetos com interacao
     m_interactables.push_back({ Kind::Boat, 0, m_boat.getPosition(), 3.2f, 2.2f,
-                                "Barco Mundaú: a canoa de madeira que vai levar a Lia pelas águas de Alagoas.",
+                                "barco",
                                 InteractionSound::Chime, 0.0f });
     m_interactables.push_back({ Kind::Sign, 0, add(m_signPosition, { 0.0f, 1.3f, 0.0f }), 2.6f, 1.0f,
-                                "Placa: Bem-vinda a Maceió! Siga pela orla até o píer.",
+                                "placa",
                                 InteractionSound::Chime, 0.0f });
 
     for (size_t i = 0; i < m_palms.size(); ++i) {
         Vec3 base = { m_palms[i].matrix[12], m_palms[i].matrix[13] + 1.2f, m_palms[i].matrix[14] };
         m_interactables.push_back({ Kind::Palm, static_cast<int>(i), base, 2.0f, 0.8f,
-                                    "Coqueiro: a Lia balançou o coqueiro!", InteractionSound::Leaves, 0.0f });
+                                    "coqueiro", InteractionSound::Leaves, 0.0f });
     }
 
     return true;
@@ -568,7 +568,7 @@ Interaction MaceioScene::interact(int id)
         m_palms[item.index].shake = 1.0f;
     }
 
-    result.message = item.message;
+    result.dialogueId = item.dialogueId;
     result.sound = item.sound;
     return result;
 }
