@@ -2,6 +2,30 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A8: desafios matemáticos
+
+**Pedido:** etapa A8 do roteiro: um motor genérico de desafios (`MathChallenge`) com operação, operandos, resultado, dificuldade, contexto e ação esperada. Ao concluir uma missão que tem desafio, a conta aparece montada na tela a partir do que o jogador fez, com som de sucesso. Por enquanto é só a estrutura, com suporte às 4 operações e a contas combinadas. Demonstração: Dona Graça tem 2 cocos, a Lia entrega 3 e aparece 2 + 3 = 5. Feito na branch `desafios-matematicos`, criada a partir da `missoes`.
+
+### Adicionado
+- `src/gameplay/MathChallenge`:
+  - `MathChallenge` guarda o id, o contexto, a ação esperada, a dificuldade, o tipo de operação (soma, subtração, multiplicação, divisão ou combinada), os operandos, os operadores, o resultado e se a conta é válida;
+  - `MathChallengeBook` carrega os desafios e monta a conta trocando as variáveis pelo que o jogador fez;
+  - o motor resolve as contas com multiplicação e divisão antes de soma e subtração, e só aceita divisões exatas;
+  - `text()` escreve a conta para a tela, por exemplo "2 + 3 = 5" ou "12 ÷ 3 = 4".
+- `assets/desafios/maceio.txt`: os desafios do capítulo, com o formato explicado no topo.
+  - Campos: `conta`, `dificuldade`, `contexto` e `acao`.
+  - Variáveis: `{entregue}` e `{tinha}`.
+  - Desafio `cocos_graca`: `2 + {entregue}`.
+- **Tela do desafio** (estado DESAFIO da A2): a conta em letras grandes acima da caixa, o contexto na caixa e a etiqueta "Desafio resolvido!", com um som de acerto (`SoundSynth::success`, arpejo dó-mi-sol-dó).
+- Teste: `ROTA_TEST_STATE=desafio` abre o jogo já mostrando o desafio da Dona Graça.
+
+### Alterado
+- Ao concluir uma missão com o campo `desafio`, o jogo monta e mostra a conta (`Game::startChallenge`).
+- `README.md`: como criar itens, missões e desafios.
+
+### Removido
+- O desafio de teste da tecla F3 e o texto fixo dele (o estado DESAFIO agora mostra os desafios de verdade).
+
 ## 2026-10-07 — Etapa A7: missões (tarefas)
 
 **Pedido:** etapa A7 do roteiro: tarefas definidas como dados, com objetivo, condição de conclusão (ter N itens ou entregar a um NPC), diálogo de conclusão e próxima tarefa, ligadas a NPCs e diálogos pelo id. O objetivo atual aparece no HUD. Feito na branch `missoes`, criada a partir da `inventario`.

@@ -69,7 +69,7 @@ const char* PAUSE_LINES[] = {
     "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
     "R / T: girar o barco  ·  Z / X: tamanho do barco",
     "I: mochila (inventário)  ·  M: música  ·  F12: captura de tela",
-    "F2: teste de transição  ·  F3: teste de desafio"
+    "F2: teste de transição"
 };
 
 }
@@ -110,6 +110,7 @@ void Game::loadSounds()
     m_leaves = SoundSynth::leavesRustle();
     m_blip = SoundSynth::dialogueBlip();
     m_pickup = SoundSynth::pickup();
+    m_success = SoundSynth::success();
 }
 
 bool Game::init()
@@ -161,10 +162,17 @@ bool Game::init()
 
     m_dialogue.loadFile(AssetPath::resolve("assets/dialogos/maceio.txt"));
     m_quests.loadFile(AssetPath::resolve("assets/missoes/maceio.txt"));
+    m_challenges.loadFile(AssetPath::resolve("assets/desafios/maceio.txt"));
     openDialogue("inicio");
 
     // Para testes: ROTA_TEST_STATE=pausa abre o jogo ja na tela de pausa
     const char* testState = std::getenv("ROTA_TEST_STATE");
+    if (testState != nullptr && std::string(testState) == "desafio") {
+        std::map<std::string, int> variables;
+        variables["entregue"] = 3;
+        variables["tinha"] = 3;
+        startChallenge("cocos_graca", variables);
+    }
     if (testState != nullptr && std::string(testState) == "missao") {
         m_quests.dialogueFor("vendedora", m_inventory);
         m_quests.onDialogueClosed(m_inventory);
@@ -335,9 +343,6 @@ void Game::enterState(GameState state)
     case GameState::Transition:
         m_transitionTimer = 0.0f;
         break;
-    case GameState::Challenge:
-        m_message = "Desafio (teste): aqui vão aparecer os desafios de matemática.";
-        break;
     default:
         break;
     }
@@ -389,8 +394,29 @@ void Game::onDialogueFinished()
     if (!event.completedId.empty()) {
         const QuestDefinition* quest = m_quests.find(event.completedId);
         showToast("Missão concluída: " + (quest != nullptr ? quest->title : event.completedId));
-        m_audio.play(m_pickup, 0.5f, false);
+
+        if (!event.challengeId.empty()) {
+            // Variaveis da conta a partir do que o jogador fez
+            std::map<std::string, int> variables;
+            variables["entregue"] = event.delivered;
+            variables["tinha"] = (quest != nullptr ? m_inventory.count(quest->itemId) : 0) + event.delivered;
+            startChallenge(event.challengeId, variables);
+        }
+        else {
+            m_audio.play(m_pickup, 0.5f, false);
+        }
     }
+}
+
+void Game::startChallenge(const std::string& id, const std::map<std::string, int>& variables)
+{
+    if (!m_challenges.build(id, variables, m_challenge)) {
+        return;
+    }
+
+    m_message = m_challenge.context;
+    changeState(GameState::Challenge);
+    m_audio.play(m_success, 0.55f, false);
 }
 
 // ------------------------------------------------------------------ atualizacao
@@ -500,9 +526,6 @@ void Game::update(float deltaTime)
         }
         else if (Input::wasKeyPressed(GLFW_KEY_F2)) {
             changeState(GameState::Transition);
-        }
-        else if (Input::wasKeyPressed(GLFW_KEY_F3)) {
-            changeState(GameState::Challenge);
         }
         break;
 
@@ -620,13 +643,26 @@ void Game::renderInterface()
         m_text.drawBox(boxX, boxY, boxWidth, 3.0f * ui, accent);
 
         // Nome de quem fala, numa etiqueta em destaque acima da caixa
-        std::string speaker = inDialogue ? m_dialogue.speaker() : std::string("Desafio");
+        std::string speaker = inDialogue ? m_dialogue.speaker() : std::string("Desafio resolvido!");
         if (!speaker.empty()) {
             float nameScale = 0.7f * ui;
             float nameWidth = m_text.measure(speaker, nameScale) + 2.0f * padding;
             float nameHeight = m_text.lineHeight(nameScale) + 8.0f * ui;
             m_text.drawBox(boxX, boxY - nameHeight, nameWidth, nameHeight, accent);
             m_text.drawText(boxX + padding, boxY - nameHeight + 4.0f * ui, speaker, nameScale, { 0.08f, 0.08f, 0.1f, 1.0f });
+        }
+
+        if (inChallenge) {
+            // A conta montada, em destaque acima da caixa
+            std::string expression = m_challenge.text();
+            float bigScale = 1.8f * ui;
+            float panelWidth = m_text.measure(expression, bigScale) + 80.0f * ui;
+            float panelHeight = m_text.lineHeight(bigScale) + 30.0f * ui;
+            float panelX = (width - panelWidth) * 0.5f;
+            float panelY = boxY - panelHeight - 70.0f * ui;
+            m_text.drawBox(panelX, panelY, panelWidth, panelHeight, { 0.05f, 0.08f, 0.12f, 0.85f });
+            m_text.drawBox(panelX, panelY + panelHeight - 4.0f * ui, panelWidth, 4.0f * ui, accent);
+            m_text.drawText(panelX + 40.0f * ui, panelY + 15.0f * ui, expression, bigScale, { 1.0f, 1.0f, 1.0f, 1.0f });
         }
 
         std::string text = inDialogue ? m_dialogue.visibleText() : m_message;

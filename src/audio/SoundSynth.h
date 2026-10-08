@@ -31,6 +31,9 @@ Sound dialogueBlip();
 // Notinha subindo ao pegar um item.
 Sound pickup();
 
+// Arpejo alegre de acerto (desafio resolvido).
+Sound success();
+
 }
 
 #endif

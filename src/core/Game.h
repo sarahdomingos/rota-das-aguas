@@ -12,9 +12,11 @@
 #include "scenes/Maceio/MaceioScene.h"
 #include "gameplay/Dialogue.h"
 #include "gameplay/Inventory.h"
+#include "gameplay/MathChallenge.h"
 #include "gameplay/Quest.h"
 #include "ui/TextRenderer.h"
 
+#include <map>
 #include <string>
 
 // Estados do jogo. So JOGANDO aceita movimento e interacao; DIALOGO e DESAFIO
@@ -57,6 +59,7 @@ private:
     Sound m_leaves;
     Sound m_blip;
     Sound m_pickup;
+    Sound m_success;
 
     int m_musicVoice;
     int m_wavesVoice;
@@ -76,6 +79,8 @@ private:
     Dialogue m_dialogue;
     Inventory m_inventory;
     QuestLog m_quests;
+    MathChallengeBook m_challenges;
+    MathChallenge m_challenge;
 
     void changeState(GameState next);
     void enterState(GameState state);
@@ -84,6 +89,7 @@ private:
     void onItemCollected(const std::string& itemId, int quantity);
     void showToast(const std::string& text);
     void onDialogueFinished();
+    void startChallenge(const std::string& id, const std::map<std::string, int>& variables);
 
     void loadSounds();
     void update(float deltaTime);

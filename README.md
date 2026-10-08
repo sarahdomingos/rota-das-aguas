@@ -20,6 +20,12 @@ A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/sh
 # Diálogos
 As falas ficam em `assets/dialogos/` (um arquivo por capítulo, UTF-8). Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala` (use `Narrador:` para narração). O formato está explicado no topo de `assets/dialogos/maceio.txt`. Basta editar o arquivo e abrir o jogo de novo; não é preciso recompilar.
 
+# Itens, missões e desafios (dados do capítulo)
+Cada capítulo tem seus arquivos de dados em `assets/` (texto UTF-8, formato explicado no topo de cada arquivo); não é preciso recompilar:
+- `assets/itens/maceio.txt`: tipos de item (`tipo | id | nome | categoria | modelo | cor`) e onde aparecem (`item | id | x | z | quantidade`).
+- `assets/missoes/maceio.txt`: missões (`[id]` + `titulo`, `objetivo`, `quem`, `condicao: entregar coco 3`, `inicial`, diálogos de início/andamento/conclusão, `desafio`, `proxima`).
+- `assets/desafios/maceio.txt`: desafios (`[id]` + `conta: 2 + {entregue}`, `dificuldade`, `contexto`, `acao`).
+
 # NPCs
 Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long`/`Short`/`Bald`, camisa, short, calçado, acessório `None`/`Backpack`/`StrawHat`/`Apron` com cor, e altura) e crie um `NPC(nome, estilo, idDoDialogo)`. Depois posicione com `place(posição, giro)`. Veja `MaceioScene::buildNpcs()`. O diálogo do NPC é um bloco `[id]` no arquivo de diálogos do capítulo.
 
@@ -32,7 +38,8 @@ Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long
 - R / T → girar o barco · Z / X → diminuir / aumentar o barco
 - E, Espaço ou clique → fecha a mensagem na tela
 - Esc ou P → pausa (na pausa: Q sai do jogo)
-- F2 → teste de transição (escurece e volta) · F3 → teste de desafio
+- I → mochila (inventário)
+- F2 → teste de transição (escurece e volta)
 - M → liga/desliga a música
 - F12 → salva uma captura (`captura.bmp`)
 

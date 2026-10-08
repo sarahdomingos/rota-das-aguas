@@ -450,4 +450,26 @@ Sound pickup()
     return sound;
 }
 
+Sound success()
+{
+    Sound sound;
+    std::size_t length = static_cast<std::size_t>(1.2f * RATE);
+    sound.samples.assign(length, 0.0f);
+
+    const float notes[4] = { 523.3f, 659.3f, 784.0f, 1046.5f }; // do, mi, sol, do
+    for (int n = 0; n < 4; ++n) {
+        std::size_t start = static_cast<std::size_t>(n * 0.11f * RATE);
+        float decay = n == 3 ? 3.0f : 8.0f;
+        for (std::size_t i = start; i < length; ++i) {
+            float t = (i - start) / RATE;
+            float envelope = std::fmin(t / 0.005f, 1.0f) * std::exp(-t * decay);
+            float phase = 2.0f * PI * notes[n] * t;
+            sound.samples[i] += (std::sin(phase) + 0.3f * std::sin(2.0f * phase)) * envelope;
+        }
+    }
+
+    normalize(sound, 0.55f);
+    return sound;
+}
+
 }
