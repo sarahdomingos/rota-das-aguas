@@ -1,4 +1,5 @@
 #include "Window.h"
+#include <cstdlib>
 #include <iostream>
 
 Window::Window(int width, int height, const std::string &title)
@@ -21,9 +22,17 @@ bool Window::init()
         return false;
     }
 
-    // Configuração para uso do OpenGL 2.0 (Pipeline Fixo)
+    // OpenGL 2.0: primeira versao com shaders GLSL (1.10)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_SAMPLES, 4); // Antisserrilhamento, se o driver suportar
+
+    // No modo de captura automatica (testes) a janela nao rouba o foco do teclado
+    if (std::getenv("ROTA_AUTOSHOT") != nullptr)
+    {
+        glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+    }
 
     m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
     if (!m_window)
@@ -36,61 +45,52 @@ bool Window::init()
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(1); // Ativa V-Sync
 
-    // Configurações padrão iniciais do OpenGL 2.0
-    glEnable(GL_DEPTH_TEST); // Habilita o teste de profundidade (Buffer de Z)
-    glDepthFunc(GL_LESS);
+    // Mantem o tamanho atualizado quando a janela for redimensionada
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, onFramebufferResize);
 
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-
-    GLfloat lightPosition[] = {
-        4.0f,
-        6.0f,
-        4.0f,
-        1.0f};
-
-    GLfloat lightAmbient[] = {
-        0.25f,
-        0.25f,
-        0.25f,
-        1.0f};
-
-    GLfloat lightDiffuse[] = {
-        0.8f,
-        0.8f,
-        0.8f,
-        1.0f};
-
-    glLightfv(
-        GL_LIGHT0,
-        GL_POSITION,
-        lightPosition);
-
-    glLightfv(
-        GL_LIGHT0,
-        GL_AMBIENT,
-        lightAmbient);
-
-    glLightfv(
-        GL_LIGHT0,
-        GL_DIFFUSE,
-        lightDiffuse);
-
-    glEnable(GL_COLOR_MATERIAL);
-
-    glColorMaterial(
-        GL_FRONT_AND_BACK,
-        GL_AMBIENT_AND_DIFFUSE);
-
-    // Configura a Viewport inicial
+    glfwGetFramebufferSize(m_window, &m_width, &m_height);
     glViewport(0, 0, m_width, m_height);
 
     return true;
 }
 
+void Window::onFramebufferResize(GLFWwindow *window, int width, int height)
+{
+    Window *self = static_cast<Window *>(glfwGetWindowUserPointer(window));
+
+    if (self)
+    {
+        self->m_width = width;
+        self->m_height = height;
+    }
+
+    glViewport(0, 0, width, height);
+}
+
+float Window::getAspect() const
+{
+    if (m_height <= 0)
+    {
+        return 1.0f;
+    }
+
+    return static_cast<float>(m_width) / static_cast<float>(m_height);
+}
+
 bool Window::shouldClose() const
 {
     return glfwWindowShouldClose(m_window);
+}
+
+void Window::close()
+{
+    glfwSetWindowShouldClose(m_window, GLFW_TRUE);
+}
+
+void Window::setTitle(const std::string &title)
+{
+    glfwSetWindowTitle(m_window, title.c_str());
 }
 
 void Window::swapBuffers()

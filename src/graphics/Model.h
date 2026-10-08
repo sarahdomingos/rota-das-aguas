@@ -10,7 +10,7 @@ struct ModelVertex {
     float u, v;
 };
 
-struct Material {
+struct ModelMaterial {
     std::string name;
 
     float r = 0.8f;
@@ -20,7 +20,7 @@ struct Material {
 
 struct ModelTriangle {
     ModelVertex vertices[3];
-    Material material;
+    ModelMaterial material;
 };
 
 class Model {
@@ -40,11 +40,11 @@ private:
 
     bool loadMaterialLibrary(
         const std::string& mtlPath,
-        std::vector<Material>& materials
+        std::vector<ModelMaterial>& materials
     );
 
-    Material* findMaterial(
-        std::vector<Material>& materials,
+    ModelMaterial* findMaterial(
+        std::vector<ModelMaterial>& materials,
         const std::string& name
     );
 

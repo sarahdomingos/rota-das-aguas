@@ -11,11 +11,14 @@ public:
 
     bool init();
     bool shouldClose() const;
+    void close();
+    void setTitle(const std::string& title);
     void swapBuffers();
     void pollEvents();
-    
+
     int getWidth() const { return m_width; }
     int getHeight() const { return m_height; }
+    float getAspect() const;
     GLFWwindow* getNativeWindow() const { return m_window; }
 
 private:
@@ -23,6 +26,8 @@ private:
     int m_height;
     std::string m_title;
     GLFWwindow* m_window;
+
+    static void onFramebufferResize(GLFWwindow* window, int width, int height);
 };
 
 #endif
