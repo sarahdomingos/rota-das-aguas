@@ -50,7 +50,7 @@ void main()
     vec4 base = v_color * u_color;
 
     if (u_useTexture > 0.5) {
-        base.rgb *= texture2D(u_texture, v_uv).rgb;
+        base *= texture2D(u_texture, v_uv);
     }
 
     if (u_unlit > 0.5) {

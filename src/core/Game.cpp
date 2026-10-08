@@ -16,7 +16,7 @@ using namespace MathUtils;
 namespace {
 
 const char* TITLE = "Rota das Águas - Maceió";
-const char* HINT = "WASD/setas: andar | Shift: correr | arrastar o mouse: câmera | roda: zoom | clique ou E: interagir | M: música";
+const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  M: música";
 
 const float MUSIC_VOLUME = 0.28f;
 
@@ -74,7 +74,6 @@ Game::Game()
       m_dragDistance(0.0f),
       m_messageTimer(0.0f)
 {
-    m_baseTitle = std::string(TITLE) + "  |  " + HINT;
 }
 
 Game::~Game()
@@ -112,7 +111,12 @@ bool Game::init()
         return false;
     }
 
-    m_window.setTitle(m_baseTitle);
+    if (!m_text.init()) {
+        std::cerr << "Nao foi possivel criar a fonte do texto na tela." << std::endl;
+    }
+
+    m_message = "Lia chegou a Maceió! Atenção: o barco Mundaú está no píer, à espera de você. Explore a orla e as construções.";
+    m_messageTimer = MESSAGE_SECONDS;
     Input::init(m_window.getNativeWindow());
 
     if (!m_scene->init()) {
@@ -241,7 +245,7 @@ void Game::handleInteraction()
         m_audio.play(m_chime, 0.25f, false);
     }
 
-    m_window.setTitle(std::string(TITLE) + "  |  " + result.message);
+    m_message = result.message;
     m_messageTimer = MESSAGE_SECONDS;
 }
 
@@ -320,9 +324,6 @@ void Game::update(float deltaTime)
 
     if (m_messageTimer > 0.0f) {
         m_messageTimer -= deltaTime;
-        if (m_messageTimer <= 0.0f) {
-            m_window.setTitle(m_baseTitle);
-        }
     }
 
     const Scene& scene = *m_scene;
@@ -342,4 +343,46 @@ void Game::render()
     m_scene->drawShadows(m_renderer, m_player.getPosition());
     m_scene->drawWater(m_renderer);
     m_renderer.endTransparent();
+
+    renderInterface();
+}
+
+void Game::renderInterface()
+{
+    int width = m_window.getWidth();
+    int height = m_window.getHeight();
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+
+    // Tamanho do texto acompanha a altura da janela (referencia: 720 px)
+    float ui = height / 720.0f;
+
+    m_text.begin(m_renderer, width, height);
+
+    // Dica de controles, discreta, no canto superior esquerdo
+    float hintScale = 0.5f * ui;
+    float hintWidth = m_text.measure(HINT, hintScale);
+    m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
+    m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
+
+    // Caixa de mensagem na parte de baixo, sumindo no ultimo meio segundo
+    if (m_messageTimer > 0.0f && !m_message.empty()) {
+        float fade = m_messageTimer < 0.5f ? m_messageTimer / 0.5f : 1.0f;
+        float scale = 0.8f * ui;
+        float padding = 18.0f * ui;
+        float boxWidth = width * 0.7f;
+        float textWidth = boxWidth - 2.0f * padding;
+
+        std::vector<std::string> lines = m_text.wrap(m_message, scale, textWidth);
+        float boxHeight = lines.size() * m_text.lineHeight(scale) + 2.0f * padding;
+        float boxX = (width - boxWidth) * 0.5f;
+        float boxY = height - boxHeight - 30.0f * ui;
+
+        m_text.drawBox(boxX, boxY, boxWidth, boxHeight, { 0.05f, 0.08f, 0.12f, 0.72f * fade });
+        m_text.drawBox(boxX, boxY, boxWidth, 3.0f * ui, { 0.98f, 0.76f, 0.24f, 0.9f * fade });
+        m_text.drawWrapped(boxX + padding, boxY + padding, textWidth, m_message, scale, { 1.0f, 1.0f, 1.0f, fade });
+    }
+
+    m_text.end();
 }

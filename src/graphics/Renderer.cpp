@@ -127,6 +127,38 @@ void Renderer::endTransparent()
     glDisable(GL_BLEND);
 }
 
+void Renderer::begin2D(int width, int height)
+{
+    float projection[16];
+    float view[16];
+    MathUtils::orthographic(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f, projection);
+    MathUtils::identity(view);
+
+    m_shader.setMat4("u_projection", projection);
+    m_shader.setMat4("u_view", view);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+}
+
+void Renderer::setMaterial2D(const Texture* texture)
+{
+    float model[16];
+    MathUtils::identity(model);
+
+    Material material;
+    material.unlit = true;
+    material.fog = false;
+    material.texture = texture;
+    setObjectUniforms(model, material);
+}
+
+void Renderer::end2D()
+{
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+}
+
 void Renderer::setBoatMask(const float boatMatrix[16])
 {
     float inverse[16];

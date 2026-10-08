@@ -21,6 +21,9 @@ public:
     bool create(int width, int height, const std::vector<unsigned char>& pixels);
     bool loadBMP(const std::string& path);
 
+    // pixels: width * height * 4 bytes (RGBA), linha de cima primeiro, sem mipmaps (texto/interface).
+    bool createRGBA(int width, int height, const std::vector<unsigned char>& pixels);
+
     void bind() const;
     bool isValid() const;
 
