@@ -1,0 +1,31 @@
+# Missões do Capítulo 1 - Maceió
+#
+# Como editar (texto em UTF-8; linhas com # são comentários):
+# - Cada missão começa com o id entre colchetes: [cocos_graca]
+# - Depois, uma linha por campo, no formato   campo: valor
+#
+# Campos:
+#   titulo:            nome curto da missão (aparece no HUD)
+#   objetivo:          o que a Lia precisa fazer
+#   quem:              id de diálogo do NPC/objeto que pede e recebe (ex.: vendedora, pescador, barco)
+#   condicao:          entregar <item> <quantidade>   (tira os itens da mochila ao concluir)
+#                      ter <item> <quantidade>        (só precisa ter, não tira)
+#   inicial:           sim  se a missão já está liberada no começo do capítulo
+#   dialogo_inicio:    diálogo ao pedir a missão (arquivo assets/dialogos)
+#   dialogo_andamento: diálogo enquanto a condição não foi cumprida
+#   dialogo_conclusao: diálogo ao entregar/concluir
+#   desafio:           id do desafio de matemática mostrado ao concluir (assets/desafios), opcional
+#   proxima:           id da missão liberada depois desta, opcional
+#
+# Os ids de item vêm de assets/itens; os de diálogo, de assets/dialogos.
+
+[cocos_graca]
+titulo: Cocos para a tapioca
+objetivo: Encontre 3 cocos pela orla e leve para a Dona Graça.
+quem: vendedora
+condicao: entregar coco 3
+inicial: sim
+dialogo_inicio: graca_pedido
+dialogo_andamento: graca_andamento
+dialogo_conclusao: graca_conclusao
+desafio: cocos_graca

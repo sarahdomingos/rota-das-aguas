@@ -40,3 +40,17 @@ Dona Graça: Olá, querida! Hoje tem tapioca de coco e queijo coalho na brasa.
 Lia: Hum, que cheiro bom! Quanto custa a tapioca?
 Dona Graça: Cinco reais cada uma. Se você levar duas, quanto vai pagar?
 Lia: Cinco mais cinco... dez reais!
+
+# --- Missão: Cocos para a tapioca (assets/missoes/maceio.txt)
+
+[graca_pedido]
+Dona Graça: Lia, querida, preciso da sua ajuda! Hoje é dia de tapioca de coco.
+Dona Graça: Eu tenho 2 cocos, mas a receita pede 5. Caíram alguns pela orla com o vento.
+Lia: Pode deixar! Vou procurar 3 cocos e trago para a senhora.
+
+[graca_andamento]
+Dona Graça: Ainda faltam cocos, Lia. Procure perto dos coqueiros, na areia.
+
+[graca_conclusao]
+Lia: Achei! Trouxe 3 cocos para a senhora.
+Dona Graça: Que maravilha! Com os meus 2, agora tenho cocos para a receita toda.

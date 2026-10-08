@@ -160,10 +160,17 @@ bool Game::init()
     }
 
     m_dialogue.loadFile(AssetPath::resolve("assets/dialogos/maceio.txt"));
+    m_quests.loadFile(AssetPath::resolve("assets/missoes/maceio.txt"));
     openDialogue("inicio");
 
     // Para testes: ROTA_TEST_STATE=pausa abre o jogo ja na tela de pausa
     const char* testState = std::getenv("ROTA_TEST_STATE");
+    if (testState != nullptr && std::string(testState) == "missao") {
+        m_quests.dialogueFor("vendedora", m_inventory);
+        m_quests.onDialogueClosed(m_inventory);
+        m_inventory.add("coco", 1);
+        changeState(GameState::Playing);
+    }
     if (testState != nullptr && std::string(testState) == "mochila") {
         m_inventory.add("coco", 2);
         m_inventory.add("concha", 1);
@@ -283,7 +290,7 @@ void Game::handleInteraction()
         m_audio.play(m_chime, 0.25f, false);
     }
 
-    openDialogue(result.dialogueId);
+    openDialogue(m_quests.dialogueFor(result.dialogueId, m_inventory));
 }
 
 void Game::handleBoatControls(float deltaTime)
@@ -367,6 +374,23 @@ void Game::onItemCollected(const std::string& itemId, int quantity)
     char buffer[160];
     std::snprintf(buffer, sizeof(buffer), "Você pegou: %s (+%d)", m_scene->getItemCatalog().nameOf(itemId).c_str(), quantity);
     showToast(buffer);
+}
+
+void Game::onDialogueFinished()
+{
+    QuestEvent event = m_quests.onDialogueClosed(m_inventory);
+
+    if (!event.startedId.empty()) {
+        const QuestDefinition* quest = m_quests.find(event.startedId);
+        showToast("Nova missão: " + (quest != nullptr ? quest->title : event.startedId));
+        m_audio.play(m_chime, 0.4f, false);
+    }
+
+    if (!event.completedId.empty()) {
+        const QuestDefinition* quest = m_quests.find(event.completedId);
+        showToast("Missão concluída: " + (quest != nullptr ? quest->title : event.completedId));
+        m_audio.play(m_pickup, 0.5f, false);
+    }
 }
 
 // ------------------------------------------------------------------ atualizacao
@@ -493,6 +517,7 @@ void Game::update(float deltaTime)
             m_audio.play(m_blip, 0.35f, false);
             if (!m_dialogue.advance()) {
                 changeState(GameState::Playing);
+                onDialogueFinished();
             }
         }
         break;
@@ -663,6 +688,33 @@ void Game::renderInterface()
 
 void Game::renderHud(float ui, int width)
 {
+    // Missao atual, no canto superior esquerdo (abaixo da dica de controles)
+    if (const QuestDefinition* quest = m_quests.activeQuest()) {
+        char progress[96];
+        std::snprintf(progress, sizeof(progress), "%s: %d/%d", m_scene->getItemCatalog().nameOf(quest->itemId).c_str(),
+                      m_quests.progress(*quest, m_inventory), quest->amount);
+
+        float titleScale = 0.6f * ui;
+        float lineScale = 0.5f * ui;
+        float boxWidth = 380.0f * ui;
+        float x = 10.0f * ui;
+        float y = 46.0f * ui;
+
+        std::vector<std::string> lines = m_text.wrap(quest->objective, lineScale, boxWidth - 24.0f * ui);
+        float boxHeight = m_text.lineHeight(titleScale) + (lines.size() + 1) * m_text.lineHeight(lineScale) + 16.0f * ui;
+
+        m_text.drawBox(x, y, boxWidth, boxHeight, { 0.0f, 0.0f, 0.0f, 0.35f });
+        m_text.drawBox(x, y, 4.0f * ui, boxHeight, { 0.98f, 0.76f, 0.24f, 0.9f });
+        m_text.drawText(x + 12.0f * ui, y + 6.0f * ui, "Missão: " + quest->title, titleScale, { 1.0f, 0.85f, 0.4f, 1.0f });
+
+        float lineY = y + 6.0f * ui + m_text.lineHeight(titleScale);
+        for (const std::string& line : lines) {
+            m_text.drawText(x + 12.0f * ui, lineY, line, lineScale, { 1.0f, 1.0f, 1.0f, 0.9f });
+            lineY += m_text.lineHeight(lineScale);
+        }
+        m_text.drawText(x + 12.0f * ui, lineY, progress, lineScale, { 0.75f, 0.95f, 0.75f, 1.0f });
+    }
+
     // Itens que a Lia carrega, no canto superior direito
     std::vector<std::pair<std::string, int>> items = m_inventory.entries();
     if (items.empty()) {

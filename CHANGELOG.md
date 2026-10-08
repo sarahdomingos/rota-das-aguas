@@ -2,6 +2,28 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A7: missões (tarefas)
+
+**Pedido:** etapa A7 do roteiro: tarefas definidas como dados, com objetivo, condição de conclusão (ter N itens ou entregar a um NPC), diálogo de conclusão e próxima tarefa, ligadas a NPCs e diálogos pelo id. O objetivo atual aparece no HUD. Feito na branch `missoes`, criada a partir da `inventario`.
+
+### Adicionado
+- `assets/missoes/maceio.txt`: as missões do capítulo, com o formato explicado no topo.
+  - Campos: `titulo`, `objetivo`, `quem`, `condicao` (`entregar coco 3` ou `ter coco 3`), `inicial`, `dialogo_inicio`, `dialogo_andamento`, `dialogo_conclusao`, `desafio` e `proxima`.
+- `src/gameplay/Quest` (`QuestLog`): carrega as missões e controla o estado de cada uma (bloqueada, disponível, em andamento ou concluída).
+  - Ao falar com quem pede, escolhe o diálogo certo: pedido, andamento ou conclusão.
+  - Ao fechar o diálogo, inicia ou conclui a missão. Na entrega, retira os itens da mochila e libera a próxima missão.
+- **Missão de demonstração "Cocos para a tapioca":** a Dona Graça tem 2 cocos e precisa de 5. A Lia acha 3 cocos pela orla e entrega a ela. Diálogos novos: `graca_pedido`, `graca_andamento` e `graca_conclusao`.
+- **HUD da missão** no canto superior esquerdo: título, objetivo e progresso (ex.: "Coco: 1/3").
+- **Avisos** "Nova missão" e "Missão concluída", com som.
+- Teste: `ROTA_TEST_STATE=missao` abre o jogo com a missão em andamento e 1 coco na mochila.
+
+### Alterado
+- A interação com NPCs e objetos passa pelas missões antes de abrir o diálogo. Sem missão, abre o diálogo normal do NPC ou objeto.
+- O fim de um diálogo avisa as missões (`Game::onDialogueFinished`).
+
+### Removido
+- Nada.
+
 ## 2026-10-07 — Etapa A6: inventário e HUD
 
 **Pedido:** etapa A6 do roteiro: inventário que soma e retira quantidades, HUD com os itens que a Lia carrega e uma tela de inventário na tecla I. Feito na branch `inventario`, criada a partir da `itens-coletaveis`.

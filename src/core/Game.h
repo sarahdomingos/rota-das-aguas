@@ -12,6 +12,7 @@
 #include "scenes/Maceio/MaceioScene.h"
 #include "gameplay/Dialogue.h"
 #include "gameplay/Inventory.h"
+#include "gameplay/Quest.h"
 #include "ui/TextRenderer.h"
 
 #include <string>
@@ -74,6 +75,7 @@ private:
     TextRenderer m_text;
     Dialogue m_dialogue;
     Inventory m_inventory;
+    QuestLog m_quests;
 
     void changeState(GameState next);
     void enterState(GameState state);
@@ -81,6 +83,7 @@ private:
     void openDialogue(const std::string& id);
     void onItemCollected(const std::string& itemId, int quantity);
     void showToast(const std::string& text);
+    void onDialogueFinished();
 
     void loadSounds();
     void update(float deltaTime);
