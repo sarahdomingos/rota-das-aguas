@@ -2,6 +2,45 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A6: inventário e HUD
+
+**Pedido:** etapa A6 do roteiro: inventário que soma e retira quantidades, HUD com os itens que a Lia carrega e uma tela de inventário na tecla I. Feito na branch `inventario`, criada a partir da `itens-coletaveis`.
+
+### Adicionado
+- `src/gameplay/Inventory`: a mochila da Lia.
+  - `add` e `remove` (retirar só funciona se houver quantidade suficiente, o que já atende as entregas e a subtração do capítulo 2), `count` e `entries`.
+  - Os itens ficam na ordem em que foram pegos.
+- **HUD** no canto superior direito com os itens carregados (quadradinho na cor do item, nome e quantidade). Só aparece quando há algum item.
+- **Tela "Mochila da Lia"** na tecla I: um estado próprio (`GameState::Inventory`) que para o mundo como a pausa e lista nome, categoria e quantidade. Fecha com I ou Esc.
+- Teste: `ROTA_TEST_STATE=mochila` abre o jogo com a mochila aberta e alguns itens.
+
+### Alterado
+- Pegar um item agora o guarda na mochila (o som e o aviso da A5 continuam).
+- As dicas de controle (canto e pausa) incluem "I: mochila".
+
+### Removido
+- Nada.
+
+## 2026-10-07 — Etapa A5: itens coletáveis
+
+**Pedido:** etapa A5 do roteiro: itens coletáveis genéricos, definidos como dados. No mundo, o item gira e flutua, brilha em foco e some ao ser pego com clique ou E, com som. Feito na branch `itens-coletaveis`, criada a partir da `modelo-npc`.
+
+### Adicionado
+- `assets/itens/maceio.txt`: tipos de item (id, nome, categoria, modelo e cor) e posições no mundo, com o formato explicado no topo. Há 3 cocos, 2 conchas e 1 fita de festa pela orla.
+- `src/gameplay/Items`: catálogo de itens (`ItemDefinition`, `ItemCatalog`) e leitor do arquivo (`loadItemsFile`), reaproveitável por qualquer cena.
+- `src/entities/Item`: item no mundo.
+  - Flutua e gira devagar e tem um brilho leve.
+  - Brilha mais quando está em foco e some ao ser pego.
+- `src/models/ItemModels`: modelos simples gerados por código (coco, concha e fita de festa).
+- **Ao pegar um item:** toca um som de pegar (`SoundSynth::pickup`, três notas subindo) e aparece o aviso "Você pegou: Coco (+1)" no alto da tela por alguns segundos.
+
+### Alterado
+- `Scene`: `Interaction` informa o item pego (`itemId`, `itemQuantity`) e a cena expõe o catálogo de itens (`getItemCatalog`).
+- `MaceioScene`: carrega os itens do arquivo, desenha os itens e não deixa focar os que já foram pegos.
+
+### Removido
+- Nada.
+
 ## 2026-10-07 — Etapa A4: modelo de NPC reutilizável
 
 **Pedido:** executar a etapa A4 do roteiro: um gerador de NPC que reaproveita o corpo e a hierarquia da Lia, com aparência definida por parâmetros. Os NPCs respiram parados, viram para a Lia quando ela chega perto, têm colisão e abrem um diálogo da A3. Para demonstrar, dois NPCs em Maceió. Feito na branch `modelo-npc`, criada a partir da `sistema-de-dialogo`.

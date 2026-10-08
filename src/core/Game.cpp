@@ -17,7 +17,7 @@ using namespace MathUtils;
 namespace {
 
 const char* TITLE = "Rota das Águas - Maceió";
-const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  M: música  ·  Esc/P: pausa";
+const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  I: mochila  ·  M: música  ·  Esc/P: pausa";
 
 const float MUSIC_VOLUME = 0.28f;
 
@@ -68,7 +68,7 @@ const char* PAUSE_LINES[] = {
     "Arrastar o mouse: girar a câmera  ·  Roda: zoom",
     "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
     "R / T: girar o barco  ·  Z / X: tamanho do barco",
-    "M: música  ·  F12: captura de tela",
+    "I: mochila (inventário)  ·  M: música  ·  F12: captura de tela",
     "F2: teste de transição  ·  F3: teste de desafio"
 };
 
@@ -85,7 +85,8 @@ Game::Game()
       m_dragDistance(0.0f),
       m_state(GameState::Playing),
       m_stateBeforePause(GameState::Playing),
-      m_transitionTimer(0.0f)
+      m_transitionTimer(0.0f),
+      m_toastTimer(0.0f)
 {
 }
 
@@ -108,6 +109,7 @@ void Game::loadSounds()
     m_chime = SoundSynth::chime();
     m_leaves = SoundSynth::leavesRustle();
     m_blip = SoundSynth::dialogueBlip();
+    m_pickup = SoundSynth::pickup();
 }
 
 bool Game::init()
@@ -162,6 +164,11 @@ bool Game::init()
 
     // Para testes: ROTA_TEST_STATE=pausa abre o jogo ja na tela de pausa
     const char* testState = std::getenv("ROTA_TEST_STATE");
+    if (testState != nullptr && std::string(testState) == "mochila") {
+        m_inventory.add("coco", 2);
+        m_inventory.add("concha", 1);
+        changeState(GameState::Inventory);
+    }
     if (testState != nullptr && std::string(testState) == "pausa") {
         m_stateBeforePause = m_state;
         changeState(GameState::Paused);
@@ -262,6 +269,14 @@ void Game::handleInteraction()
     }
 
     Interaction result = m_scene->interact(target);
+
+    // Item: pega, toca o som e mostra um aviso rapido
+    if (!result.itemId.empty()) {
+        m_audio.play(m_pickup, 0.5f, false);
+        onItemCollected(result.itemId, result.itemQuantity);
+        return;
+    }
+
     m_audio.play(result.sound == InteractionSound::Leaves ? m_leaves : m_chime, 0.55f, false);
 
     if (result.sound == InteractionSound::Leaves) {
@@ -339,6 +354,21 @@ void Game::openDialogue(const std::string& id)
     }
 }
 
+void Game::showToast(const std::string& text)
+{
+    m_toast = text;
+    m_toastTimer = 2.5f;
+}
+
+void Game::onItemCollected(const std::string& itemId, int quantity)
+{
+    m_inventory.add(itemId, quantity);
+
+    char buffer[160];
+    std::snprintf(buffer, sizeof(buffer), "Você pegou: %s (+%d)", m_scene->getItemCatalog().nameOf(itemId).c_str(), quantity);
+    showToast(buffer);
+}
+
 // ------------------------------------------------------------------ atualizacao
 
 void Game::handleMovement(float deltaTime, bool allowMove)
@@ -400,6 +430,14 @@ void Game::update(float deltaTime)
 
     bool pauseKey = Input::wasKeyPressed(GLFW_KEY_ESCAPE) || Input::wasKeyPressed(GLFW_KEY_P);
 
+    // MOCHILA: o mundo para enquanto a tela do inventario esta aberta
+    if (m_state == GameState::Inventory) {
+        if (Input::wasKeyPressed(GLFW_KEY_I) || Input::wasKeyPressed(GLFW_KEY_ESCAPE)) {
+            changeState(GameState::Playing);
+        }
+        return;
+    }
+
     // PAUSA: o mundo para; so da para continuar ou sair do jogo
     if (m_state == GameState::Paused) {
         if (pauseKey) {
@@ -418,6 +456,9 @@ void Game::update(float deltaTime)
     }
 
     m_time += deltaTime;
+    if (m_toastTimer > 0.0f) {
+        m_toastTimer -= deltaTime;
+    }
     handleCamera();
 
     bool closePressed = Input::wasKeyPressed(GLFW_KEY_E) || Input::wasKeyPressed(GLFW_KEY_SPACE) ||
@@ -430,7 +471,10 @@ void Game::update(float deltaTime)
         updateWorld(deltaTime);
         handleInteraction();
 
-        if (Input::wasKeyPressed(GLFW_KEY_F2)) {
+        if (Input::wasKeyPressed(GLFW_KEY_I)) {
+            changeState(GameState::Inventory);
+        }
+        else if (Input::wasKeyPressed(GLFW_KEY_F2)) {
             changeState(GameState::Transition);
         }
         else if (Input::wasKeyPressed(GLFW_KEY_F3)) {
@@ -473,6 +517,7 @@ void Game::update(float deltaTime)
         break;
 
     case GameState::Paused:
+    case GameState::Inventory:
         break;
     }
 }
@@ -511,6 +556,22 @@ void Game::renderInterface()
     float hintWidth = m_text.measure(HINT, hintScale);
     m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
     m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
+
+    if (m_state != GameState::Inventory && m_state != GameState::Paused) {
+        renderHud(ui, width);
+    }
+
+    // Aviso rapido no alto da tela (ex.: item pego)
+    if (m_toastTimer > 0.0f && !m_toast.empty()) {
+        float fade = m_toastTimer < 0.5f ? m_toastTimer / 0.5f : 1.0f;
+        float toastScale = 0.75f * ui;
+        float toastWidth = m_text.measure(m_toast, toastScale) + 40.0f * ui;
+        float toastHeight = m_text.lineHeight(toastScale) + 16.0f * ui;
+        float toastX = (width - toastWidth) * 0.5f;
+        float toastY = 70.0f * ui;
+        m_text.drawBox(toastX, toastY, toastWidth, toastHeight, { 0.05f, 0.08f, 0.12f, 0.7f * fade });
+        m_text.drawText(toastX + 20.0f * ui, toastY + 8.0f * ui, m_toast, toastScale, { 1.0f, 0.9f, 0.5f, fade });
+    }
 
     // Caixa de dialogo / desafio na parte de baixo da tela
     bool inDialogue = m_state == GameState::Dialogue && m_dialogue.isActive();
@@ -563,6 +624,10 @@ void Game::renderInterface()
         m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, clamp(alpha, 0.0f, 1.0f) });
     }
 
+    if (m_state == GameState::Inventory) {
+        renderInventoryScreen(ui, width, height);
+    }
+
     // PAUSA: escurece a cena parada e mostra os controles
     if (m_state == GameState::Paused) {
         m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.55f });
@@ -594,4 +659,80 @@ void Game::renderInterface()
     }
 
     m_text.end();
+}
+
+void Game::renderHud(float ui, int width)
+{
+    // Itens que a Lia carrega, no canto superior direito
+    std::vector<std::pair<std::string, int>> items = m_inventory.entries();
+    if (items.empty()) {
+        return;
+    }
+
+    const ItemCatalog& catalog = m_scene->getItemCatalog();
+    float scale = 0.55f * ui;
+    float row = m_text.lineHeight(scale) + 4.0f * ui;
+    float panelWidth = 210.0f * ui;
+    float x = width - panelWidth - 10.0f * ui;
+    float y = 10.0f * ui;
+
+    m_text.drawBox(x, y, panelWidth, row * items.size() + 12.0f * ui, { 0.0f, 0.0f, 0.0f, 0.3f });
+
+    for (size_t i = 0; i < items.size(); ++i) {
+        const ItemDefinition* definition = catalog.find(items[i].first);
+        Vec3 color = definition != nullptr ? definition->color : Vec3{ 1.0f, 1.0f, 1.0f };
+        float rowY = y + 6.0f * ui + row * i;
+
+        m_text.drawBox(x + 10.0f * ui, rowY + 5.0f * ui, 14.0f * ui, 14.0f * ui, { color.x, color.y, color.z, 1.0f });
+
+        char line[128];
+        std::snprintf(line, sizeof(line), "%s  ×%d", catalog.nameOf(items[i].first).c_str(), items[i].second);
+        m_text.drawText(x + 32.0f * ui, rowY, line, scale, { 1.0f, 1.0f, 1.0f, 0.95f });
+    }
+}
+
+void Game::renderInventoryScreen(float ui, int width, int height)
+{
+    m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.5f });
+
+    const ItemCatalog& catalog = m_scene->getItemCatalog();
+    std::vector<std::pair<std::string, int>> items = m_inventory.entries();
+
+    float titleScale = 1.2f * ui;
+    float lineScale = 0.7f * ui;
+    float row = m_text.lineHeight(lineScale) + 8.0f * ui;
+    float panelWidth = 620.0f * ui;
+    float panelHeight = (items.empty() ? 1 : items.size()) * row + 40.0f * ui;
+    float panelX = (width - panelWidth) * 0.5f;
+    float y = height * 0.2f;
+
+    const char* title = "Mochila da Lia";
+    m_text.drawText((width - m_text.measure(title, titleScale)) * 0.5f, y, title, titleScale, { 1.0f, 0.85f, 0.4f, 1.0f });
+    y += m_text.lineHeight(titleScale) + 14.0f * ui;
+
+    m_text.drawBox(panelX, y, panelWidth, panelHeight, { 0.05f, 0.08f, 0.12f, 0.85f });
+    y += 20.0f * ui;
+
+    if (items.empty()) {
+        m_text.drawText(panelX + 24.0f * ui, y, "A mochila está vazia. Procure itens pela orla!", lineScale, { 1.0f, 1.0f, 1.0f, 0.8f });
+    }
+
+    for (size_t i = 0; i < items.size(); ++i) {
+        const ItemDefinition* definition = catalog.find(items[i].first);
+        Vec3 color = definition != nullptr ? definition->color : Vec3{ 1.0f, 1.0f, 1.0f };
+        std::string category = definition != nullptr ? definition->category : "";
+
+        m_text.drawBox(panelX + 24.0f * ui, y + 6.0f * ui, 20.0f * ui, 20.0f * ui, { color.x, color.y, color.z, 1.0f });
+        m_text.drawText(panelX + 56.0f * ui, y, catalog.nameOf(items[i].first), lineScale, { 1.0f, 1.0f, 1.0f, 1.0f });
+        m_text.drawText(panelX + 300.0f * ui, y, category, lineScale * 0.85f, { 0.75f, 0.85f, 1.0f, 0.8f });
+
+        char quantity[32];
+        std::snprintf(quantity, sizeof(quantity), "×%d", items[i].second);
+        m_text.drawText(panelX + panelWidth - 24.0f * ui - m_text.measure(quantity, lineScale), y, quantity, lineScale, { 1.0f, 0.9f, 0.5f, 1.0f });
+        y += row;
+    }
+
+    y = height * 0.2f + m_text.lineHeight(titleScale) + 14.0f * ui + panelHeight + 24.0f * ui;
+    const char* hint = "I ou Esc: fechar a mochila";
+    m_text.drawText((width - m_text.measure(hint, 0.6f * ui)) * 0.5f, y, hint, 0.6f * ui, { 1.0f, 1.0f, 1.0f, 0.8f });
 }

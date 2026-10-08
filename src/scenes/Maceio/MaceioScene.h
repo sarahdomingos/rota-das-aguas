@@ -7,11 +7,13 @@
 
 #include "scenes/Scene.h"
 #include "entities/Boat.h"
+#include "entities/Item.h"
 #include "entities/NPC.h"
 #include "graphics/Mesh.h"
 #include "graphics/Renderer.h"
 #include "graphics/Texture.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -38,6 +40,7 @@ public:
     int findInteractable(const Vec3& playerPosition, const Vec3* rayOrigin, const Vec3* rayDirection) const override;
     void setFocus(int id) override;
     Interaction interact(int id) override;
+    const ItemCatalog& getItemCatalog() const override;
 
     Boat& getBoat();
 
@@ -59,7 +62,7 @@ private:
         float matrix[16];
     };
 
-    enum class Kind { Boat, Sign, Palm, Npc };
+    enum class Kind { Boat, Sign, Palm, Npc, Item };
 
     struct Interactable {
         Kind kind;
@@ -105,6 +108,10 @@ private:
     Boat m_boat;
     std::vector<NPC> m_npcs;
 
+    ItemCatalog m_itemCatalog;
+    std::map<std::string, Mesh> m_itemMeshes;
+    std::vector<Item> m_items;
+
     std::vector<Circle> m_circles;
     std::vector<Box> m_boxes;
     std::vector<Interactable> m_interactables;
@@ -122,6 +129,8 @@ private:
     void buildBeach();
     void buildSky();
     void buildNpcs();
+    void buildItems();
+    bool isAvailable(const Interactable& item) const;
     void drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity);
 };
 
