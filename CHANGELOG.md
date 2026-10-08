@@ -2,6 +2,34 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-07 — Etapa A4: modelo de NPC reutilizável
+
+**Pedido:** executar a etapa A4 do roteiro: um gerador de NPC que reaproveita o corpo e a hierarquia da Lia, com aparência definida por parâmetros. Os NPCs respiram parados, viram para a Lia quando ela chega perto, têm colisão e abrem um diálogo da A3. Para demonstrar, dois NPCs em Maceió. Feito na branch `modelo-npc`, criada a partir da `sistema-de-dialogo`.
+
+### Adicionado
+- **`CharacterStyle`** (`src/models/LiaModel.h`): a aparência de um personagem.
+  - Cores de pele, cabelo, camisa, short e calçado.
+  - Estilo de cabelo: comprido, curto ou careca.
+  - Acessório: mochila, chapéu de palha, avental ou nenhum, com a cor do acessório.
+  - Altura (escala).
+- `LiaModel::build(style)` monta qualquer personagem com essa aparência; `LiaModel::liaStyle()` é a aparência da Lia.
+- **`src/entities/NPC`**: entidade com nome, aparência, posição, rotação e id de diálogo.
+  - Fica parado respirando, com uma fase própria para os NPCs não se mexerem todos juntos.
+  - Vira suavemente para a Lia quando ela está a menos de 4,5 unidades e depois volta à posição original.
+  - Brilha quando está em foco.
+- **Dois NPCs em Maceió**, com colisão, sombra e interação (clique ou E):
+  - **Seu Bené**, pescador no píer, de chapéu de palha;
+  - **Dona Graça**, vendedora de tapioca no calçadão, de avental.
+- **Diálogos novos** `[pescador]` e `[vendedora]` em `assets/dialogos/maceio.txt`, com pequenas contas de divisão e soma.
+
+### Alterado
+- `LiaModel`: as cores fixas viraram parâmetros, e `draw` ganhou o destaque (objeto em foco). A Lia continua com a mesma aparência.
+- `MaceioScene`: os NPCs entram como objetos interativos (`Kind::Npc`), com círculo de colisão e sombra.
+- `README.md`: como criar um NPC.
+
+### Removido
+- Nada.
+
 ## 2026-10-07 — Etapa A3: sistema de diálogo
 
 **Pedido:** executar a etapa A3 do roteiro: um sistema de diálogo genérico e orientado a dados, em que cada capítulo só precisa de um arquivo novo de falas. As interações do barco, da placa e do coqueiro passam a abrir diálogos desse arquivo. Feito na branch `sistema-de-dialogo`, criada a partir da `estados-do-jogo`.

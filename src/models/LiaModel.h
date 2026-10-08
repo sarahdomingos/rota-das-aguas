@@ -12,6 +12,22 @@
 
 class Renderer;
 
+// Aparencia de um personagem (Lia ou NPC), usada pelo gerador de modelo.
+enum class HairStyle { Long, Short, Bald };
+enum class Accessory { None, Backpack, StrawHat, Apron };
+
+struct CharacterStyle {
+    Vec3 skin;
+    Vec3 hairColor;
+    Vec3 shirt;
+    Vec3 shorts;
+    Vec3 shoes;
+    HairStyle hair;
+    Accessory accessory;
+    Vec3 accessoryColor;
+    float height;       // escala do personagem (1 = altura da Lia)
+};
+
 struct CharacterModel {
     Mesh body;
     Mesh leftArm;
@@ -27,12 +43,16 @@ struct CharacterModel {
 
 namespace LiaModel {
 
+// Aparencia da Lia
+CharacterStyle liaStyle();
+
 CharacterModel build();
+CharacterModel build(const CharacterStyle& style);
 
 // Desenha a personagem animada.
 // walkPhase: fase do ciclo de passos (radianos); walkAmount: 0 parada, 1 andando, >1 correndo.
 void draw(const CharacterModel& model, Renderer& renderer, const float root[16],
-          float walkPhase, float walkAmount, float time);
+          float walkPhase, float walkAmount, float time, float highlight = 0.0f);
 
 }
 

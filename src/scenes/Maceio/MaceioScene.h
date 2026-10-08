@@ -7,6 +7,7 @@
 
 #include "scenes/Scene.h"
 #include "entities/Boat.h"
+#include "entities/NPC.h"
 #include "graphics/Mesh.h"
 #include "graphics/Renderer.h"
 #include "graphics/Texture.h"
@@ -58,7 +59,7 @@ private:
         float matrix[16];
     };
 
-    enum class Kind { Boat, Sign, Palm };
+    enum class Kind { Boat, Sign, Palm, Npc };
 
     struct Interactable {
         Kind kind;
@@ -102,6 +103,7 @@ private:
     Vec3 m_signPosition;
 
     Boat m_boat;
+    std::vector<NPC> m_npcs;
 
     std::vector<Circle> m_circles;
     std::vector<Box> m_boxes;
@@ -119,6 +121,7 @@ private:
     void buildTown();
     void buildBeach();
     void buildSky();
+    void buildNpcs();
     void drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity);
 };
 

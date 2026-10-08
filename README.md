@@ -20,6 +20,9 @@ A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/sh
 # Diálogos
 As falas ficam em `assets/dialogos/` (um arquivo por capítulo, UTF-8). Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala` (use `Narrador:` para narração). O formato está explicado no topo de `assets/dialogos/maceio.txt`. Basta editar o arquivo e abrir o jogo de novo; não é preciso recompilar.
 
+# NPCs
+Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long`/`Short`/`Bald`, camisa, short, calçado, acessório `None`/`Backpack`/`StrawHat`/`Apron` com cor, e altura) e crie um `NPC(nome, estilo, idDoDialogo)`. Depois posicione com `place(posição, giro)`. Veja `MaceioScene::buildNpcs()`. O diálogo do NPC é um bloco `[id]` no arquivo de diálogos do capítulo.
+
 # Controles
 - W A S D / setas → andar (relativo à câmera)
 - Shift → correr

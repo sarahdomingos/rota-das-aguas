@@ -28,3 +28,15 @@ Narrador: O barco balança devagar, esperando a próxima viagem.
 [coqueiro]
 Narrador: A Lia balançou o coqueiro. As folhas fazem barulho com o vento.
 Lia: Quantos cocos será que tem lá em cima? Um, dois, três, quatro... quatro cocos!
+
+[pescador]
+Seu Bené: Bom dia, menina! Saí cedinho para pescar e já voltei com o samburá cheio.
+Lia: Quantos peixes o senhor pegou, Seu Bené?
+Seu Bené: Doze! Vou dividir entre três vizinhos. Quantos peixes cada um vai ganhar?
+Lia: Doze dividido por três... quatro peixes para cada um!
+
+[vendedora]
+Dona Graça: Olá, querida! Hoje tem tapioca de coco e queijo coalho na brasa.
+Lia: Hum, que cheiro bom! Quanto custa a tapioca?
+Dona Graça: Cinco reais cada uma. Se você levar duas, quanto vai pagar?
+Lia: Cinco mais cinco... dez reais!
