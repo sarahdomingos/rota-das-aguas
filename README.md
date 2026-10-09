@@ -3,10 +3,52 @@ Game 3D utilizando OpenGL 2.0. Contexto ambientado por elementos da cultura alag
 
 # Como executar o projeto
 - Clone o repositório localmente;
-- Ainda na raiz do projeto, execute o comando build.bat
-- Antes de realizar qualquer alteração/commit, certifique-se de estar na branch development. A branch main só deve ser alterada através de Pull Request da development para main, somente quando houver a certeza de que a branch development foi testada e está estável para se tornar uma nova versão do jogo.
+- Use um **MinGW 32-bit** (ex.: `C:\MinGW\bin`) no início do PATH: a GLFW em `external/lib` é 32-bit e não linka com um g++ 64-bit (o `build.bat` avisa se for o caso);
+- Na raiz do projeto, execute o comando `build.bat` (compila, copia as DLLs e abre o jogo).
 
-# Como interagir com o objeto pelo teclado
-- As setas ↑ ↓ ← → para translação
-- Q / E → rotação
-- Z / X → escala
+Alternativa com CMake (mesmo MinGW 32-bit):
+
+```
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER=C:/MinGW/bin/g++.exe -DCMAKE_C_COMPILER=C:/MinGW/bin/gcc.exe
+cmake --build build
+build\RotaDasAguas.exe
+```
+
+# Capítulo 1 — Maceió
+A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/shaders`), iluminação Phong, neblina e texturas geradas por código. Tem areia, calçadão, casario colorido, píer de madeira, coqueiros que balançam, pedras, guarda-sóis e o barco Mundaú atracado, acompanhando as ondas. A Lia é um modelo low-poly gerado por código, com braços e pernas animados. Música e efeitos sonoros também são gerados por código (veja `CREDITS.md`).
+
+# Diálogos
+As falas ficam em `assets/dialogos/` (um arquivo por capítulo, UTF-8). Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala` (use `Narrador:` para narração). O formato está explicado no topo de `assets/dialogos/maceio.txt`. Basta editar o arquivo e abrir o jogo de novo; não é preciso recompilar.
+
+# Itens, missões e desafios (dados do capítulo)
+Cada capítulo tem seus arquivos de dados em `assets/` (texto UTF-8, formato explicado no topo de cada arquivo); não é preciso recompilar:
+- `assets/itens/maceio.txt`: tipos de item (`tipo | id | nome | categoria | modelo | cor`) e onde aparecem (`item | id | x | z | quantidade`).
+- `assets/missoes/maceio.txt`: missões (`[id]` + `titulo`, `objetivo`, `quem`, `condicao: entregar coco 3`, `inicial`, diálogos de início/andamento/conclusão, `desafio`, `proxima`).
+- `assets/desafios/maceio.txt`: desafios (`[id]` + `conta: 2 + {entregue}`, `dificuldade`, `contexto`, `acao`).
+
+# NPCs
+Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long`/`Short`/`Bald`, camisa, short, calçado, acessório `None`/`Backpack`/`StrawHat`/`Apron` com cor, e altura) e crie um `NPC(nome, estilo, idDoDialogo)`. Depois posicione com `place(posição, giro)`. Veja `MaceioScene::buildNpcs()`. O diálogo do NPC é um bloco `[id]` no arquivo de diálogos do capítulo.
+
+# Controles
+- W A S D / setas → andar (relativo à câmera)
+- Shift → correr
+- Arrastar com o mouse (botão esquerdo ou direito) → girar a câmera
+- Roda do mouse → zoom
+- Clique ou E → interagir com o objeto em destaque (barco, placa, coqueiros)
+- R / T → girar o barco · Z / X → diminuir / aumentar o barco
+- E, Espaço ou clique → fecha a mensagem na tela
+- Esc ou P → pausa (na pausa: Q sai do jogo)
+- I → mochila (inventário)
+- F2 → teste de transição (escurece e volta)
+- M → liga/desliga a música
+- F12 → salva uma captura (`captura.bmp`)
+
+# Organização do código
+- `src/core` → `Game` (loop principal), `Window`, `Input`, `AssetPath`
+- `src/graphics` → `Shader`, `Renderer` (materiais), `Camera` (orbital), `Mesh` (primitivas), `Model` (.obj), `Texture`, `ProceduralTextures`, `Light`, `Water`, `Transform`, `MathUtils`, `GLFunctions`
+- `src/models` → geradores de modelos reutilizáveis: `LiaModel`, `CoastalModels` (coqueiro, pedra, nuvem, guarda-sol), `UrbanModels` (casa, píer, poste, placa)
+- `src/scenes` → `Scene` (interface de cada cidade) e `Maceio/MaceioScene`
+- `src/entities` → `Player` (Lia), `Boat` (Mundaú)
+- `src/ui` → `TextRenderer` (texto na tela com acentos, caixas de diálogo)
+- `src/audio` → `AudioEngine` (mixer sobre o waveOut/winmm) e `SoundSynth` (música e efeitos sintetizados)
+- `assets/shaders` → `basic.vert`, `basic.frag`

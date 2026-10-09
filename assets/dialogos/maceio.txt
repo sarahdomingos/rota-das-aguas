@@ -1,0 +1,56 @@
+# Diálogos do Capítulo 1 - Maceió
+#
+# Como editar (arquivo de texto em UTF-8):
+# - Linhas que começam com # são comentários e são ignoradas.
+# - Cada diálogo começa com o id entre colchetes, numa linha sozinha: [placa]
+# - Cada fala ocupa uma linha no formato   Nome: texto da fala
+#   (o nome vai até os primeiros dois-pontos; o resto da linha é o texto).
+# - Para uma fala sem personagem (narração), use o nome Narrador.
+# - Linhas em branco são ignoradas.
+# - O id é usado pelo código para abrir o diálogo (ex.: interação com a placa abre [placa]).
+# - Para um capítulo novo, crie um arquivo novo nesta pasta com os ids da cena.
+
+[inicio]
+Narrador: Lia chegou a Maceió, a capital de Alagoas.
+Lia: Que cheiro de mar! Preciso encontrar o barco Mundaú no píer.
+Narrador: Ande com W, A, S, D, gire a câmera arrastando o mouse e interaja com E ou clique.
+
+[placa]
+Placa: Bem-vinda a Maceió! Mar azul-esverdeado, jangadas e coqueiros por toda a orla.
+Placa: Em breve: a Festa das Águas, com barcos enfeitados, música e muita alegria.
+Lia: A Festa das Águas! Não posso perder. Vou seguir pela orla até o píer.
+
+[barco]
+Lia: Este é o Mundaú, a canoa de madeira que vai me levar pelas águas de Alagoas.
+Lia: O casco é estreito e comprido, feito para deslizar na lagoa.
+Narrador: O barco balança devagar, esperando a próxima viagem.
+
+[coqueiro]
+Narrador: A Lia balançou o coqueiro. As folhas fazem barulho com o vento.
+Lia: Quantos cocos será que tem lá em cima? Um, dois, três, quatro... quatro cocos!
+
+[pescador]
+Seu Bené: Bom dia, menina! Saí cedinho para pescar e já voltei com o samburá cheio.
+Lia: Quantos peixes o senhor pegou, Seu Bené?
+Seu Bené: Doze! Vou dividir entre três vizinhos. Quantos peixes cada um vai ganhar?
+Lia: Doze dividido por três... quatro peixes para cada um!
+
+[vendedora]
+Dona Graça: Olá, querida! Hoje tem tapioca de coco e queijo coalho na brasa.
+Lia: Hum, que cheiro bom! Quanto custa a tapioca?
+Dona Graça: Cinco reais cada uma. Se você levar duas, quanto vai pagar?
+Lia: Cinco mais cinco... dez reais!
+
+# --- Missão: Cocos para a tapioca (assets/missoes/maceio.txt)
+
+[graca_pedido]
+Dona Graça: Lia, querida, preciso da sua ajuda! Hoje é dia de tapioca de coco.
+Dona Graça: Eu tenho 2 cocos, mas a receita pede 5. Caíram alguns pela orla com o vento.
+Lia: Pode deixar! Vou procurar 3 cocos e trago para a senhora.
+
+[graca_andamento]
+Dona Graça: Ainda faltam cocos, Lia. Procure perto dos coqueiros, na areia.
+
+[graca_conclusao]
+Lia: Achei! Trouxe 3 cocos para a senhora.
+Dona Graça: Que maravilha! Com os meus 2, agora tenho cocos para a receita toda.

@@ -1,28 +1,42 @@
 #include "Window.h"
+#include <cstdlib>
 #include <iostream>
 
-Window::Window(int width, int height, const std::string& title)
+Window::Window(int width, int height, const std::string &title)
     : m_width(width), m_height(height), m_title(title), m_window(nullptr) {}
 
-Window::~Window() {
-    if (m_window) {
+Window::~Window()
+{
+    if (m_window)
+    {
         glfwDestroyWindow(m_window);
     }
     glfwTerminate();
 }
 
-bool Window::init() {
-    if (!glfwInit()) {
+bool Window::init()
+{
+    if (!glfwInit())
+    {
         std::cerr << "Falha ao inicializar o GLFW!" << std::endl;
         return false;
     }
 
-    // Configuração para uso do OpenGL 2.0 (Pipeline Fixo)
+    // OpenGL 2.0: primeira versao com shaders GLSL (1.10)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_SAMPLES, 4); // Antisserrilhamento, se o driver suportar
+
+    // No modo de captura automatica (testes) a janela nao rouba o foco do teclado
+    if (std::getenv("ROTA_AUTOSHOT") != nullptr)
+    {
+        glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+    }
 
     m_window = glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
-    if (!m_window) {
+    if (!m_window)
+    {
         std::cerr << "Falha ao criar a janela GLFW!" << std::endl;
         glfwTerminate();
         return false;
@@ -31,24 +45,60 @@ bool Window::init() {
     glfwMakeContextCurrent(m_window);
     glfwSwapInterval(1); // Ativa V-Sync
 
-    // Configurações padrão iniciais do OpenGL 2.0
-    glEnable(GL_DEPTH_TEST); // Habilita o teste de profundidade (Buffer de Z)
-    glDepthFunc(GL_LESS);
-    
-    // Configura a Viewport inicial
+    // Mantem o tamanho atualizado quando a janela for redimensionada
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, onFramebufferResize);
+
+    glfwGetFramebufferSize(m_window, &m_width, &m_height);
     glViewport(0, 0, m_width, m_height);
 
     return true;
 }
 
-bool Window::shouldClose() const {
+void Window::onFramebufferResize(GLFWwindow *window, int width, int height)
+{
+    Window *self = static_cast<Window *>(glfwGetWindowUserPointer(window));
+
+    if (self)
+    {
+        self->m_width = width;
+        self->m_height = height;
+    }
+
+    glViewport(0, 0, width, height);
+}
+
+float Window::getAspect() const
+{
+    if (m_height <= 0)
+    {
+        return 1.0f;
+    }
+
+    return static_cast<float>(m_width) / static_cast<float>(m_height);
+}
+
+bool Window::shouldClose() const
+{
     return glfwWindowShouldClose(m_window);
 }
 
-void Window::swapBuffers() {
+void Window::close()
+{
+    glfwSetWindowShouldClose(m_window, GLFW_TRUE);
+}
+
+void Window::setTitle(const std::string &title)
+{
+    glfwSetWindowTitle(m_window, title.c_str());
+}
+
+void Window::swapBuffers()
+{
     glfwSwapBuffers(m_window);
 }
 
-void Window::pollEvents() {
+void Window::pollEvents()
+{
     glfwPollEvents();
 }

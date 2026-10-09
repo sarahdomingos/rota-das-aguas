@@ -1,0 +1,21 @@
+# Desafios de matemática do Capítulo 1 - Maceió
+#
+# Como editar (texto em UTF-8; linhas com # são comentários):
+# - Cada desafio começa com o id entre colchetes: [cocos_graca]
+#   (a missão aponta para ele no campo "desafio" de assets/missoes)
+# - Campos, um por linha, no formato   campo: valor
+#     conta:       a conta, com + - * /  (também aceita x para vezes e : para dividir)
+#                  Ex.: 2 + 3   |   12 / 3   |   2 * 4 + 1   (vezes e dividir vêm antes)
+#     dificuldade: 1 (fácil) a 3 (difícil)
+#     contexto:    frase que explica a conta na tela
+#     acao:        o que o jogador fez/precisava fazer (descrição)
+# - Variáveis entre chaves são preenchidas pelo jogo com o que o jogador fez:
+#     {entregue}   quantidade de itens entregue na missão
+#     {tinha}      quantidade do item que a Lia tinha antes de entregar
+# - Divisões precisam dar resultado inteiro.
+
+[cocos_graca]
+conta: 2 + {entregue}
+dificuldade: 1
+contexto: A Dona Graça tinha 2 cocos. A Lia trouxe mais {entregue}. Agora ela tem tudo para a tapioca!
+acao: entregar {entregue} cocos para a Dona Graça

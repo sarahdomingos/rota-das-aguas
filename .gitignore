@@ -13,3 +13,13 @@
 *.sln
 *.user
 .DS_Store
+
+# Arquivos copiados pelo build
+*.dll
+
+# Excecao: Permitir que modelos 3D (.obj) sejam salvos no repositorio
+!assets/**/*.obj
+
+# Capturas de tela do jogo
+captura.bmp
+autoshot.bmp

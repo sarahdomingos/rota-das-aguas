@@ -1,0 +1,107 @@
+#ifndef GAME_H
+#define GAME_H
+
+// Loop principal do jogo: cria a janela, carrega a cena e, a cada quadro,
+// le teclado e mouse, atualiza a Lia, a camera, a cena e o audio, e desenha.
+
+#include "Window.h"
+#include "audio/AudioEngine.h"
+#include "entities/Player.h"
+#include "graphics/Camera.h"
+#include "graphics/Renderer.h"
+#include "scenes/Maceio/MaceioScene.h"
+#include "gameplay/Dialogue.h"
+#include "gameplay/Inventory.h"
+#include "gameplay/MathChallenge.h"
+#include "gameplay/Quest.h"
+#include "ui/TextRenderer.h"
+
+#include <map>
+#include <string>
+
+// Estados do jogo. So JOGANDO aceita movimento e interacao; DIALOGO e DESAFIO
+// congelam a Lia mas a cena continua animando; PAUSA congela o mundo inteiro;
+// TRANSICAO escurece a tela e volta (sera usada na troca de cena).
+enum class GameState {
+    Playing,
+    Dialogue,
+    Challenge,
+    Paused,
+    Transition,
+    Inventory   // tela da mochila: o mundo para, como na pausa
+};
+
+class Game {
+public:
+    Game();
+    ~Game();
+
+    bool init();
+    void run();
+
+private:
+    Window m_window;
+    Renderer m_renderer;
+    Camera m_camera;
+    AudioEngine m_audio;
+
+    MaceioScene m_maceio;
+    Scene* m_scene;
+    Player m_player;
+
+    // Sons gerados por codigo
+    Sound m_music;
+    Sound m_waves;
+    Sound m_stepsSand[4];
+    Sound m_stepsWood[4];
+    Sound m_stepsStone[4];
+    Sound m_chime;
+    Sound m_leaves;
+    Sound m_blip;
+    Sound m_pickup;
+    Sound m_success;
+
+    int m_musicVoice;
+    int m_wavesVoice;
+    bool m_musicOn;
+    int m_stepCounter;
+
+    float m_time;
+    float m_dragDistance;
+    std::string m_message;
+
+    GameState m_state;
+    GameState m_stateBeforePause;
+    float m_transitionTimer;
+    std::string m_toast;
+    float m_toastTimer;
+    TextRenderer m_text;
+    Dialogue m_dialogue;
+    Inventory m_inventory;
+    QuestLog m_quests;
+    MathChallengeBook m_challenges;
+    MathChallenge m_challenge;
+
+    void changeState(GameState next);
+    void enterState(GameState state);
+    void exitState(GameState state);
+    void openDialogue(const std::string& id);
+    void onItemCollected(const std::string& itemId, int quantity);
+    void showToast(const std::string& text);
+    void onDialogueFinished();
+    void startChallenge(const std::string& id, const std::map<std::string, int>& variables);
+
+    void loadSounds();
+    void update(float deltaTime);
+    void handleCamera();
+    void handleInteraction();
+    void handleMovement(float deltaTime, bool allowMove);
+    void updateWorld(float deltaTime);
+    void handleBoatControls(float deltaTime);
+    void render();
+    void renderInterface();
+    void renderHud(float ui, int width);
+    void renderInventoryScreen(float ui, int width, int height);
+};
+
+#endif
