@@ -91,6 +91,8 @@ Game::Game()
       m_toastTimer(0.0f),
       m_inventorySelection(0),
       m_answerValue(0),
+      m_reportShown(false),
+      m_reportReturn(GameState::Playing),
       m_inBoat(false),
       m_boatSpeed(0.0f)
 {
@@ -183,6 +185,16 @@ bool Game::init()
         m_quests.start("cocos_graca");
         m_inventory.add("coco", 1);
         changeState(GameState::Playing);
+    }
+    if (testState != nullptr && std::string(testState) == "relatorio") {
+        m_quests.start("cocos_graca");
+        m_quests.addAttempt("cocos_graca");
+        m_quests.complete("cocos_graca");
+        m_quests.start("lixo_bene");
+        for (int i = 0; i < 4; ++i) m_quests.addAttempt("lixo_bene");
+        m_quests.complete("lixo_bene");
+        m_reportReturn = GameState::Playing;
+        changeState(GameState::Report);
     }
     if (testState != nullptr && std::string(testState) == "barco") {
         changeState(GameState::Playing);
@@ -796,6 +808,15 @@ void Game::update(float deltaTime)
         return;
     }
 
+    // RELATORIO: o mundo para; volta para onde estava (jogo ou pausa)
+    if (m_state == GameState::Report) {
+        if (Input::wasKeyPressed(GLFW_KEY_ESCAPE) || Input::wasKeyPressed(GLFW_KEY_E) || Input::wasKeyPressed(GLFW_KEY_ENTER) ||
+            Input::wasKeyPressed(GLFW_KEY_SPACE) || Input::wasKeyPressed(GLFW_KEY_R)) {
+            changeState(m_reportReturn);
+        }
+        return;
+    }
+
     // PAUSA: o mundo para; so da para continuar ou sair do jogo
     if (m_state == GameState::Paused) {
         if (pauseKey) {
@@ -803,6 +824,10 @@ void Game::update(float deltaTime)
         }
         else if (Input::wasKeyPressed(GLFW_KEY_Q)) {
             m_window.close();
+        }
+        else if (Input::wasKeyPressed(GLFW_KEY_R)) {
+            m_reportReturn = GameState::Paused;
+            changeState(GameState::Report);
         }
         return;
     }
@@ -883,6 +908,13 @@ void Game::update(float deltaTime)
 
         if (closePressed) {
             changeState(GameState::Playing);
+
+            if (m_quests.allDone() && !m_reportShown) {
+                m_reportShown = true;
+                m_reportReturn = GameState::Playing;
+                changeState(GameState::Report);
+                m_audio.play(m_success, 0.5f, false);
+            }
         }
         break;
 
@@ -905,6 +937,7 @@ void Game::update(float deltaTime)
     case GameState::Inventory:
     case GameState::Board:
     case GameState::Answer:
+    case GameState::Report:
         break;
     }
 }
@@ -1036,6 +1069,10 @@ void Game::renderInterface()
         renderAnswer(ui, width, height);
     }
 
+    if (m_state == GameState::Report) {
+        renderReport(ui, width, height);
+    }
+
     // PAUSA: escurece a cena parada e mostra os controles
     if (m_state == GameState::Paused) {
         m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.55f });
@@ -1061,7 +1098,7 @@ void Game::renderInterface()
         }
 
         y += 32.0f * ui;
-        const char* options = "Esc ou P: continuar    ·    Q: sair do jogo";
+        const char* options = "Esc ou P: continuar    ·    R: relatório    ·    Q: sair do jogo";
         float optionsScale = 0.8f * ui;
         m_text.drawText((width - m_text.measure(options, optionsScale)) * 0.5f, y, options, optionsScale, { 1.0f, 1.0f, 1.0f, 1.0f });
     }
@@ -1217,14 +1254,14 @@ void Game::renderBoard(float ui, int width, int height)
     m_text.drawBox(rightX, panelTop, rightWidth, panelBottom - panelTop, panel);
 
     // Painel esquerdo: dados do problema e passo a passo (sem o resultado)
-    float lineScale = 0.55f * ui;
+    float lineScale = 0.5f * ui;
     float textWidth = leftWidth - 2.0f * pad;
     float ly = panelTop + pad;
 
     m_text.drawText(margin + pad, ly, "Dados do problema", 0.62f * ui, yellow);
     ly += m_text.lineHeight(0.62f * ui) + 4.0f * ui;
     for (const std::string& fact : quest->facts) {
-        ly += m_text.drawWrapped(margin + pad, ly, textWidth, "• " + fact, lineScale, white) + 4.0f * ui;
+        ly += m_text.drawWrapped(margin + pad, ly, textWidth, "- " + fact, lineScale, white) + 4.0f * ui;
     }
 
     ly += 12.0f * ui;
@@ -1320,4 +1357,48 @@ void Game::renderAnswer(float ui, int width, int height)
     float hintScale = 0.5f * ui;
     m_text.drawText((width - m_text.measure(hint, hintScale)) * 0.5f, boxY + boxHeight - padding - m_text.lineHeight(hintScale),
                     hint, hintScale, { 1.0f, 1.0f, 1.0f, 0.65f });
+}
+
+void Game::renderReport(float ui, int width, int height)
+{
+    m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.65f });
+
+    bool finished = m_quests.allDone();
+    const char* title = finished ? "Maceió concluída!" : "Relatório das missões";
+    float titleScale = 1.3f * ui;
+    float y = height * 0.18f;
+    m_text.drawText((width - m_text.measure(title, titleScale)) * 0.5f, y, title, titleScale, { 1.0f, 0.85f, 0.4f, 1.0f });
+    y += m_text.lineHeight(titleScale) + 8.0f * ui;
+
+    const char* subtitle = "Tentativas de entrega em cada missão";
+    m_text.drawText((width - m_text.measure(subtitle, 0.6f * ui)) * 0.5f, y, subtitle, 0.6f * ui, { 1.0f, 1.0f, 1.0f, 0.85f });
+    y += m_text.lineHeight(0.6f * ui) + 18.0f * ui;
+
+    const std::vector<QuestDefinition>& quests = m_quests.all();
+    float lineScale = 0.72f * ui;
+    float row = m_text.lineHeight(lineScale) + 10.0f * ui;
+    float panelWidth = 760.0f * ui;
+    float panelX = (width - panelWidth) * 0.5f;
+    m_text.drawBox(panelX, y, panelWidth, quests.size() * row + 30.0f * ui, { 0.05f, 0.08f, 0.12f, 0.88f });
+    y += 15.0f * ui;
+
+    for (const QuestDefinition& quest : quests) {
+        int attempts = m_quests.attempts(quest.id);
+        QuestStatus status = m_quests.status(quest.id);
+        const char* situation = status == QuestStatus::Done ? "concluída"
+                              : status == QuestStatus::Active ? "em andamento" : "não iniciada";
+
+        char line[200];
+        std::snprintf(line, sizeof(line), "%s: %d %s", quest.giverName.c_str(), attempts, attempts == 1 ? "tentativa" : "tentativas");
+        m_text.drawText(panelX + 24.0f * ui, y, line, lineScale, { 1.0f, 1.0f, 1.0f, 1.0f });
+
+        std::string detail = quest.title + " (" + situation + ")";
+        float detailScale = 0.5f * ui;
+        m_text.drawText(panelX + panelWidth - 24.0f * ui - m_text.measure(detail, detailScale), y + 6.0f * ui, detail, detailScale,
+                        status == QuestStatus::Done ? Color{ 0.75f, 0.95f, 0.75f, 1.0f } : Color{ 1.0f, 1.0f, 1.0f, 0.7f });
+        y += row;
+    }
+
+    const char* hint = "Esc, E ou Enter: fechar";
+    m_text.drawText((width - m_text.measure(hint, 0.55f * ui)) * 0.5f, y + 40.0f * ui, hint, 0.55f * ui, { 1.0f, 1.0f, 1.0f, 0.75f });
 }

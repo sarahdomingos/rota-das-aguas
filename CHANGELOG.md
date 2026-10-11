@@ -47,6 +47,11 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
   - a Lia vai sentada no barco e pode pegar o lixo que boia no mar.
 - **Área limitada:** paredes invisíveis mantêm o barco em volta de Maceió. Ele também não passa pelo píer nem encalha na areia (`MaceioScene::isNavigable`, `findLanding`). Não há viagem entre cidades.
 - Teste: `ROTA_TEST_STATE=barco` abre o jogo com a Lia no barco.
+- **Relatório de tentativas** (estado `GameState::Report`):
+  - mostra cada missão com o número de tentativas de entrega, por exemplo "Dona Graça: 1 tentativa" e "Seu Bené: 4 tentativas", junto com o título e a situação (concluída, em andamento ou não iniciada);
+  - abre sozinho quando a última missão de Maceió termina, depois da conta;
+  - também abre pela pausa, com R.
+- Teste: `ROTA_TEST_STATE=relatorio`.
 
 ### Alterado
 - **Conchas viraram decoração** na areia (não brilham e não podem ser pegas).
@@ -66,6 +71,9 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
 - Com a Lia dentro, o barco deixa de ficar em foco, para não atrapalhar a coleta dos itens do mar.
 - Os controles de girar e mudar o tamanho do barco (R/T e Z/X) só funcionam com a Lia fora dele.
 - A tela de pausa explica os controles do barco.
+- A tela de pausa mostra "R: relatório".
+- No quadro da missão, os modelos 3D dos itens ficaram maiores, os dados usam "-" (o "•" não existe na fonte) e o texto do passo a passo ficou um pouco menor para caber.
+- `README.md`: controles novos (barco, Tab, entrega, soltar itens e relatório) e formatos atualizados dos arquivos de itens, missões e desafios.
 
 ### Removido
 - O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).

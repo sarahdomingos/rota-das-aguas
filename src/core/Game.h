@@ -31,7 +31,8 @@ enum class GameState {
     Transition,
     Inventory,  // tela da mochila: o mundo para, como na pausa
     Board,      // quadro da missao (dados do problema e passo a passo)
-    Answer      // entrega: a Lia escolhe o resultado da conta
+    Answer,     // entrega: a Lia escolhe o resultado da conta
+    Report      // relatorio de tentativas por missao (fim do capitulo ou pela pausa)
 };
 
 class Game {
@@ -98,6 +99,9 @@ private:
     int m_answerValue;
 
     // Barco pilotado pela Lia
+    bool m_reportShown;
+    GameState m_reportReturn;
+
     bool m_inBoat;
     float m_boatSpeed;
 
@@ -118,6 +122,7 @@ private:
     void confirmAnswer();
     void renderBoard(float ui, int width, int height);
     void renderAnswer(float ui, int width, int height);
+    void renderReport(float ui, int width, int height);
     void onDialogueFinished();
     void startChallenge(const std::string& id, const std::map<std::string, int>& variables);
 

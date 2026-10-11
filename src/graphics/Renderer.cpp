@@ -183,7 +183,7 @@ void Renderer::drawIcon(const Mesh& mesh, float x, float y, float size, float ya
     float local[16];
 
     MathUtils::translation(x, m_iconScreenHeight - y, 0.0f, matrix);
-    MathUtils::scaling(size, size, size, local);
+    MathUtils::scaling(size * 2.4f, size * 2.4f, size * 2.4f, local);
     MathUtils::apply(matrix, local);
     MathUtils::rotationX(25.0f, local);
     MathUtils::apply(matrix, local);

@@ -22,9 +22,9 @@ As falas ficam em `assets/dialogos/` (um arquivo por capítulo, UTF-8). Cada di�
 
 # Itens, missões e desafios (dados do capítulo)
 Cada capítulo tem seus arquivos de dados em `assets/` (texto UTF-8, formato explicado no topo de cada arquivo); não é preciso recompilar:
-- `assets/itens/maceio.txt`: tipos de item (`tipo | id | nome | categoria | modelo | cor`) e onde aparecem (`item | id | x | z | quantidade`).
-- `assets/missoes/maceio.txt`: missões (`[id]` + `titulo`, `objetivo`, `quem`, `condicao: entregar coco 3`, `inicial`, diálogos de início/andamento/conclusão, `desafio`, `proxima`).
-- `assets/desafios/maceio.txt`: desafios (`[id]` + `conta: 2 + {entregue}`, `dificuldade`, `contexto`, `acao`).
+- `assets/itens/maceio.txt`: tipos de item (`tipo | id | nome | categoria | modelo | cor`), itens que podem ser pegos (`item | id | x | z | quantidade`) e decoração (`decoracao | id | x | z`). Itens no mar boiam e só podem ser pegos de barco.
+- `assets/missoes/maceio.txt`: missões (`[id]` + `titulo`, `quem`, `nome`, `pronome`, `tarefa`, `item` (id ou categoria), `dado`, `passo`, `ilustracao`, `inicial`, diálogos de início/erro/conclusão, `desafio`, `proxima`). O resultado do desafio é a quantidade exata a entregar.
+- `assets/desafios/maceio.txt`: desafios (`[id]` + `conta: 20 * 25 / 100`, `dificuldade`, `contexto`, `acao`).
 
 # NPCs
 Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long`/`Short`/`Bald`, camisa, short, calçado, acessório `None`/`Backpack`/`StrawHat`/`Apron` com cor, e altura) e crie um `NPC(nome, estilo, idDoDialogo)`. Depois posicione com `place(posição, giro)`. Veja `MaceioScene::buildNpcs()`. O diálogo do NPC é um bloco `[id]` no arquivo de diálogos do capítulo.
@@ -34,11 +34,14 @@ Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long
 - Shift → correr
 - Arrastar com o mouse (botão esquerdo ou direito) → girar a câmera
 - Roda do mouse → zoom
-- Clique ou E → interagir com o objeto em destaque (barco, placa, coqueiros)
-- R / T → girar o barco · Z / X → diminuir / aumentar o barco
+- Clique ou E → interagir com o objeto em destaque (NPCs, placa, coqueiros, itens)
+- E perto do barco → embarcar · no barco: W/S acelera, A/D vira, E desembarca (perto do píer ou da areia)
+- Tab → quadro da missão em andamento
+- Na entrega: setas escolhem o resultado da conta, Enter ou E confirma, Esc volta
+- R / T → girar o barco · Z / X → diminuir / aumentar o barco (com a Lia fora dele)
 - E, Espaço ou clique → fecha a mensagem na tela
-- Esc ou P → pausa (na pausa: Q sai do jogo)
-- I → mochila (inventário)
+- Esc ou P → pausa (na pausa: R mostra o relatório de tentativas, Q sai do jogo)
+- I → mochila (inventário); setas escolhem o item e G ou clique solta 1 unidade
 - F2 → teste de transição (escurece e volta)
 - M → liga/desliga a música
 - F12 → salva uma captura (`captura.bmp`)
