@@ -61,6 +61,9 @@ public:
     virtual void setFocus(int id) = 0;
     virtual Interaction interact(int id) = 0;
 
+    // Coloca no chao, perto da posicao dada, um item que a Lia soltou da mochila
+    virtual void dropItem(const std::string& itemId, const Vec3& position, float yawDegrees) = 0;
+
     // Catalogo dos itens da cena (nomes, categorias e cores)
     virtual const ItemCatalog& getItemCatalog() const = 0;
 };

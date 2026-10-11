@@ -2,6 +2,31 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-11 — Ajustes de Maceió (missões mais difíceis, barco, quadro da missão e relatório)
+
+**Pedido:** ajustes decididos com a equipe:
+- missões de nível 4º a 6º ano;
+- missão de catar lixo com o Seu Bené;
+- a Lia pilota o Mundaú numa área limitada;
+- sem laço de fita, e conchas só como decoração;
+- HUD sem o total da missão e itens que podem ser soltos da mochila;
+- quadro da missão;
+- entrega com resposta da conta;
+- relatório de tentativas.
+
+Feito na branch `ajustes-maceio`, criada a partir da `development`.
+
+### Adicionado
+- **Soltar itens:** na mochila (I), as setas escolhem o item, e G (ou um clique na linha) solta 1 unidade. O item cai no chão, um pouco à frente da Lia, e pode ser pego de novo. A mochila não tem limite.
+- **Decoração** em `assets/itens/maceio.txt`: linhas `decoracao | id | x | z` enfeitam a cena sem brilho, sem interação e sem coleta.
+
+### Alterado
+- **Conchas viraram decoração** na areia (não brilham e não podem ser pegas).
+- **HUD da missão:** mostra só quantos itens a Lia carrega (ex.: "Coco: 1"), sem o total nem quanto falta.
+
+### Removido
+- O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).
+
 ## 2026-10-07 — Etapa A8: desafios matemáticos
 
 **Pedido:** etapa A8 do roteiro: um motor genérico de desafios (`MathChallenge`) com operação, operandos, resultado, dificuldade, contexto e ação esperada. Ao concluir uma missão que tem desafio, a conta aparece montada na tela a partir do que o jogador fez, com som de sucesso. Por enquanto é só a estrutura, com suporte às 4 operações e a contas combinadas. Demonstração: Dona Graça tem 2 cocos, a Lia entrega 3 e aparece 2 + 3 = 5. Feito na branch `desafios-matematicos`, criada a partir da `missoes`.

@@ -71,13 +71,14 @@ bool loadItemsFile(const std::string& path, ItemCatalog& catalog, std::vector<It
             std::sscanf(parts[5].c_str(), "%f %f %f", &definition.color.x, &definition.color.y, &definition.color.z);
             catalog.add(definition);
         }
-        else if (parts[0] == "item" && parts.size() >= 4) {
+        else if ((parts[0] == "item" || parts[0] == "decoracao") && parts.size() >= 4) {
             ItemPlacement placement;
             placement.itemId = parts[1];
             placement.x = static_cast<float>(std::atof(parts[2].c_str()));
             placement.z = static_cast<float>(std::atof(parts[3].c_str()));
             placement.quantity = parts.size() >= 5 ? std::atoi(parts[4].c_str()) : 1;
             if (placement.quantity < 1) placement.quantity = 1;
+            placement.decoration = parts[0] == "decoracao";
             placements.push_back(placement);
         }
         else {

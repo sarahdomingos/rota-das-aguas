@@ -86,7 +86,8 @@ Game::Game()
       m_state(GameState::Playing),
       m_stateBeforePause(GameState::Playing),
       m_transitionTimer(0.0f),
-      m_toastTimer(0.0f)
+      m_toastTimer(0.0f),
+      m_inventorySelection(0)
 {
 }
 
@@ -419,6 +420,53 @@ void Game::startChallenge(const std::string& id, const std::map<std::string, int
     m_audio.play(m_success, 0.55f, false);
 }
 
+void Game::updateInventoryScreen()
+{
+    std::vector<std::pair<std::string, int>> items = m_inventory.entries();
+    if (items.empty()) {
+        return;
+    }
+
+    int count = static_cast<int>(items.size());
+    if (Input::wasKeyPressed(GLFW_KEY_DOWN) || Input::wasKeyPressed(GLFW_KEY_S)) m_inventorySelection++;
+    if (Input::wasKeyPressed(GLFW_KEY_UP) || Input::wasKeyPressed(GLFW_KEY_W)) m_inventorySelection--;
+    m_inventorySelection = (m_inventorySelection % count + count) % count;
+
+    // G solta 1 unidade do item selecionado
+    if (Input::wasKeyPressed(GLFW_KEY_G)) {
+        dropFromInventory(items[m_inventorySelection].first);
+        return;
+    }
+
+    // Clique numa linha solta 1 unidade daquele item
+    if (Input::wasMousePressed(GLFW_MOUSE_BUTTON_LEFT)) {
+        int windowWidth = 1, windowHeight = 1;
+        glfwGetWindowSize(m_window.getNativeWindow(), &windowWidth, &windowHeight);
+        float mx = static_cast<float>(Input::mouseX() * m_window.getWidth() / windowWidth);
+        float my = static_cast<float>(Input::mouseY() * m_window.getHeight() / windowHeight);
+
+        for (size_t i = 0; i < m_inventoryRows.size(); ++i) {
+            const InventoryRow& row = m_inventoryRows[i];
+            if (mx >= row.x0 && mx <= row.x1 && my >= row.y0 && my <= row.y1) {
+                m_inventorySelection = static_cast<int>(i);
+                dropFromInventory(row.itemId);
+                return;
+            }
+        }
+    }
+}
+
+void Game::dropFromInventory(const std::string& itemId)
+{
+    if (!m_inventory.remove(itemId, 1)) {
+        return;
+    }
+
+    m_scene->dropItem(itemId, m_player.getPosition(), m_player.getYaw());
+    m_audio.play(m_blip, 0.4f, false);
+    showToast("Você soltou: " + m_scene->getItemCatalog().nameOf(itemId) + " (-1)");
+}
+
 // ------------------------------------------------------------------ atualizacao
 
 void Game::handleMovement(float deltaTime, bool allowMove)
@@ -484,6 +532,9 @@ void Game::update(float deltaTime)
     if (m_state == GameState::Inventory) {
         if (Input::wasKeyPressed(GLFW_KEY_I) || Input::wasKeyPressed(GLFW_KEY_ESCAPE)) {
             changeState(GameState::Playing);
+        }
+        else {
+            updateInventoryScreen();
         }
         return;
     }
@@ -727,8 +778,8 @@ void Game::renderHud(float ui, int width)
     // Missao atual, no canto superior esquerdo (abaixo da dica de controles)
     if (const QuestDefinition* quest = m_quests.activeQuest()) {
         char progress[96];
-        std::snprintf(progress, sizeof(progress), "%s: %d/%d", m_scene->getItemCatalog().nameOf(quest->itemId).c_str(),
-                      m_quests.progress(*quest, m_inventory), quest->amount);
+        std::snprintf(progress, sizeof(progress), "%s: %d", m_scene->getItemCatalog().nameOf(quest->itemId).c_str(),
+                      m_inventory.count(quest->itemId));
 
         float titleScale = 0.6f * ui;
         float lineScale = 0.5f * ui;
@@ -805,10 +856,21 @@ void Game::renderInventoryScreen(float ui, int width, int height)
         m_text.drawText(panelX + 24.0f * ui, y, "A mochila está vazia. Procure itens pela orla!", lineScale, { 1.0f, 1.0f, 1.0f, 0.8f });
     }
 
+    m_inventoryRows.clear();
+    if (!items.empty()) {
+        int count = static_cast<int>(items.size());
+        m_inventorySelection = (m_inventorySelection % count + count) % count;
+    }
+
     for (size_t i = 0; i < items.size(); ++i) {
         const ItemDefinition* definition = catalog.find(items[i].first);
         Vec3 color = definition != nullptr ? definition->color : Vec3{ 1.0f, 1.0f, 1.0f };
         std::string category = definition != nullptr ? definition->category : "";
+
+        m_inventoryRows.push_back({ panelX + 8.0f * ui, y - 2.0f * ui, panelX + panelWidth - 8.0f * ui, y + row - 6.0f * ui, items[i].first });
+        if (static_cast<int>(i) == m_inventorySelection) {
+            m_text.drawBox(panelX + 8.0f * ui, y - 2.0f * ui, panelWidth - 16.0f * ui, row - 4.0f * ui, { 0.98f, 0.76f, 0.24f, 0.25f });
+        }
 
         m_text.drawBox(panelX + 24.0f * ui, y + 6.0f * ui, 20.0f * ui, 20.0f * ui, { color.x, color.y, color.z, 1.0f });
         m_text.drawText(panelX + 56.0f * ui, y, catalog.nameOf(items[i].first), lineScale, { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -821,6 +883,6 @@ void Game::renderInventoryScreen(float ui, int width, int height)
     }
 
     y = height * 0.2f + m_text.lineHeight(titleScale) + 14.0f * ui + panelHeight + 24.0f * ui;
-    const char* hint = "I ou Esc: fechar a mochila";
+    const char* hint = "Setas: escolher  ·  G ou clique: soltar 1  ·  I ou Esc: fechar a mochila";
     m_text.drawText((width - m_text.measure(hint, 0.6f * ui)) * 0.5f, y, hint, 0.6f * ui, { 1.0f, 1.0f, 1.0f, 0.8f });
 }

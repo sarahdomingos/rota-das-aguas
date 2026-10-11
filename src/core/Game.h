@@ -18,6 +18,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 // Estados do jogo. So JOGANDO aceita movimento e interacao; DIALOGO e DESAFIO
 // congelam a Lia mas a cena continua animando; PAUSA congela o mundo inteiro;
@@ -82,12 +83,19 @@ private:
     MathChallengeBook m_challenges;
     MathChallenge m_challenge;
 
+    // Tela da mochila: item selecionado e area de cada linha (para o clique)
+    struct InventoryRow { float x0, y0, x1, y1; std::string itemId; };
+    int m_inventorySelection;
+    std::vector<InventoryRow> m_inventoryRows;
+
     void changeState(GameState next);
     void enterState(GameState state);
     void exitState(GameState state);
     void openDialogue(const std::string& id);
     void onItemCollected(const std::string& itemId, int quantity);
     void showToast(const std::string& text);
+    void updateInventoryScreen();
+    void dropFromInventory(const std::string& itemId);
     void onDialogueFinished();
     void startChallenge(const std::string& id, const std::map<std::string, int>& variables);
 

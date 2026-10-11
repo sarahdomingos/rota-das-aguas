@@ -36,25 +36,12 @@ Mesh shell(const Vec3& color)
     return mesh;
 }
 
-Mesh ribbon(const Vec3& color)
-{
-    // Laco com duas alcas e duas pontas
-    Mesh mesh;
-    mesh.addSphere({ -0.1f, 0.22f, 0.0f }, { 0.1f, 0.07f, 0.04f }, 8, 4, color);
-    mesh.addSphere({ 0.1f, 0.22f, 0.0f }, { 0.1f, 0.07f, 0.04f }, 8, 4, color);
-    mesh.addSphere({ 0.0f, 0.22f, 0.0f }, { 0.035f, 0.045f, 0.045f }, 6, 4, scale(color, 0.8f));
-    mesh.addBox({ -0.05f, 0.11f, 0.0f }, { 0.04f, 0.2f, 0.015f }, color);
-    mesh.addBox({ 0.05f, 0.11f, 0.0f }, { 0.04f, 0.2f, 0.015f }, color);
-    return mesh;
-}
-
 }
 
 Mesh build(const std::string& model, const Vec3& color)
 {
     if (model == "coco") return coconut(color);
     if (model == "concha") return shell(color);
-    if (model == "fita") return ribbon(color);
 
     Mesh box;
     box.addBox({ 0.0f, 0.12f, 0.0f }, { 0.24f, 0.24f, 0.24f }, color);

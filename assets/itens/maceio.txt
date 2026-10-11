@@ -4,23 +4,26 @@
 #
 # 1) Tipos de item (o que cada item é):
 #    tipo | id | nome na tela | categoria | modelo | cor (r g b, de 0 a 1)
-#    Modelos disponíveis: coco, concha, fita (outro nome vira uma caixinha).
+#    Modelos disponíveis: coco, concha (outro nome vira uma caixinha).
 #
-# 2) Itens no mundo (onde aparecem):
+# 2) Itens no mundo, que a Lia pode pegar:
 #    item | id do tipo | x | z | quantidade (opcional, padrão 1)
+#
+# 3) Decoração (só enfeita a cena; não brilha e não pode ser pega):
+#    decoracao | id do tipo | x | z
+#
 #    Referência de lugares: areia z entre -3 e 5, calçadão z entre 7 e 10;
 #    x vai de -45 a 45 pela orla. O píer fica em x = 10.
 
-tipo | coco   | Coco          | fruta    | coco   | 0.42 0.36 0.16
-tipo | concha | Concha        | natureza | concha | 0.95 0.72 0.62
-tipo | fita   | Fita de festa | festa    | fita   | 0.90 0.25 0.35
+tipo | coco   | Coco   | fruta    | coco   | 0.42 0.36 0.16
+tipo | concha | Concha | natureza | concha | 0.95 0.72 0.62
 
-# Cocos caídos pela orla (usados na missão da Dona Graça)
+# Cocos caídos pela orla
 item | coco | -16 | 2.5
 item | coco | 22  | 3.0
 item | coco | -30 | 0.5
 
-# Conchas e fitas espalhadas (ainda sem missão)
-item | concha | 4    | -1.5
-item | concha | -11  | -2.0
-item | fita   | 15   | 8.6
+# Conchas na areia (decoração)
+decoracao | concha | 4   | -1.5
+decoracao | concha | -11 | -2.0
+decoracao | concha | 27  | -1.0

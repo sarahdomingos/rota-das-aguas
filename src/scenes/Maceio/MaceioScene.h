@@ -41,6 +41,7 @@ public:
     void setFocus(int id) override;
     Interaction interact(int id) override;
     const ItemCatalog& getItemCatalog() const override;
+    void dropItem(const std::string& itemId, const Vec3& position, float yawDegrees) override;
 
     Boat& getBoat();
 
@@ -111,6 +112,7 @@ private:
     ItemCatalog m_itemCatalog;
     std::map<std::string, Mesh> m_itemMeshes;
     std::vector<Item> m_items;
+    Mesh m_decorations;
 
     std::vector<Circle> m_circles;
     std::vector<Box> m_boxes;
@@ -130,6 +132,8 @@ private:
     void buildSky();
     void buildNpcs();
     void buildItems();
+    const Mesh* itemMesh(const std::string& itemId);
+    void addItem(const std::string& itemId, int quantity, float x, float z);
     bool isAvailable(const Interactable& item) const;
     void drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity);
 };
