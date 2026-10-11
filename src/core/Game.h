@@ -132,7 +132,6 @@ private:
     void handleInteraction();
     void handleMovement(float deltaTime, bool allowMove);
     void updateWorld(float deltaTime);
-    void handleBoatControls(float deltaTime);
     void boardBoat();
     void tryDisembark();
     void handleSailing(float deltaTime);

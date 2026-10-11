@@ -38,7 +38,6 @@ Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long
 - E perto do barco → embarcar · no barco: W/S acelera, A/D vira, E desembarca (perto do píer ou da areia)
 - Tab → quadro da missão em andamento
 - Na entrega: setas escolhem o resultado da conta, Enter ou E confirma, Esc volta
-- R / T → girar o barco · Z / X → diminuir / aumentar o barco (com a Lia fora dele)
 - E, Espaço ou clique → fecha a mensagem na tela
 - Esc ou P → pausa (na pausa: R mostra o relatório de tentativas, Q sai do jogo)
 - I → mochila (inventário); setas escolhem o item e G ou clique solta 1 unidade

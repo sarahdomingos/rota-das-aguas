@@ -68,7 +68,6 @@ const char* PAUSE_LINES[] = {
     "Arrastar o mouse: girar a câmera  ·  Roda: zoom",
     "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
     "E perto do barco: embarcar  ·  no barco, WASD pilota e E desembarca (perto do píer ou da areia)",
-    "R / T: girar o barco  ·  Z / X: tamanho do barco (com a Lia fora dele)",
     "I: mochila (inventário)  ·  Tab: quadro da missão  ·  M: música",
     "F12: captura de tela",
     "F2: teste de transição"
@@ -357,25 +356,6 @@ void Game::handleInteraction()
     }
     else {
         openDialogue(result.dialogueId);
-    }
-}
-
-void Game::handleBoatControls(float deltaTime)
-{
-    // Transformacoes interativas do barco: R/T giram, Z/X mudam a escala
-    Transform& boat = m_maceio.getBoat().getTransform();
-
-    const float rotationSpeed = 40.0f * deltaTime;
-    const float scaleFactor = 1.0f + 0.5f * deltaTime;
-
-    if (Input::isKeyDown(GLFW_KEY_R)) boat.rotate(0.0f, rotationSpeed, 0.0f);
-    if (Input::isKeyDown(GLFW_KEY_T)) boat.rotate(0.0f, -rotationSpeed, 0.0f);
-
-    if (Input::isKeyDown(GLFW_KEY_Z) && boat.scaleX > 1.2f) {
-        boat.scale(1.0f / scaleFactor, 1.0f / scaleFactor, 1.0f / scaleFactor);
-    }
-    if (Input::isKeyDown(GLFW_KEY_X) && boat.scaleX < 3.0f) {
-        boat.scale(scaleFactor, scaleFactor, scaleFactor);
     }
 }
 
@@ -853,7 +833,6 @@ void Game::update(float deltaTime)
             handleSailing(deltaTime);
         }
         else {
-            handleBoatControls(deltaTime);
             handleMovement(deltaTime, true);
         }
         updateWorld(deltaTime);

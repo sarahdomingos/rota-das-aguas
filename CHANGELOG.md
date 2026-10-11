@@ -69,7 +69,6 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
 - Diálogos das duas missões reescritos (pedido, erro e conclusão), sem revelar o resultado.
 - **Interação com o barco:** agora embarca (antes abria o diálogo do barco).
 - Com a Lia dentro, o barco deixa de ficar em foco, para não atrapalhar a coleta dos itens do mar.
-- Os controles de girar e mudar o tamanho do barco (R/T e Z/X) só funcionam com a Lia fora dele.
 - A tela de pausa explica os controles do barco.
 - A tela de pausa mostra "R: relatório".
 - No quadro da missão, os modelos 3D dos itens ficaram maiores, os dados usam "-" (o "•" não existe na fonte) e o texto do passo a passo ficou um pouco menor para caber.
@@ -78,6 +77,7 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
 ### Removido
 - O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).
 - Os campos `objetivo`, `condicao` e `dialogo_andamento` das missões, e as variáveis `{entregue}` e `{tinha}` dos desafios (agora a conta é conhecida antes da entrega).
+- Os controles de teste do barco: R/T (girar) e Z/X (aumentar e diminuir o tamanho), com o texto de ajuda da pausa e as menções no README. O R da pausa continua abrindo o relatório, e os controles de pilotar o barco continuam iguais.
 
 ## 2026-10-07 — Etapa A8: desafios matemáticos
 
