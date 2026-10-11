@@ -376,32 +376,79 @@ void MaceioScene::buildNpcs()
 
 // ------------------------------------------------------------------ itens
 
+const Mesh* MaceioScene::itemMesh(const std::string& itemId)
+{
+    // Um modelo por tipo de item (compartilhado por todos os itens daquele tipo)
+    if (m_itemMeshes.count(itemId) == 0) {
+        const ItemDefinition* definition = m_itemCatalog.find(itemId);
+        m_itemMeshes[itemId] = definition != nullptr
+            ? ItemModels::build(definition->model, definition->color)
+            : ItemModels::build("", { 1.0f, 1.0f, 1.0f });
+    }
+    return &m_itemMeshes[itemId];
+}
+
+void MaceioScene::addItem(const std::string& itemId, int quantity, float x, float z)
+{
+    int index = static_cast<int>(m_items.size());
+    float y = groundHeight(x, z);
+    float range = 1.8f;
+
+    // No mar o item boia (so da para pegar de barco, de um pouco mais longe)
+    if (y < -0.05f) {
+        y = -0.12f;
+        range = 2.6f;
+    }
+
+    m_items.push_back(Item(itemId, quantity, itemMesh(itemId), x, y, z, index * 1.3f));
+    m_interactables.push_back({ Kind::Item, index, { x, y + 0.3f, z }, range, 0.6f, "", InteractionSound::Pickup, 0.0f });
+}
+
 void MaceioScene::buildItems()
 {
     std::vector<ItemPlacement> placements;
     loadItemsFile(AssetPath::resolve("assets/itens/maceio.txt"), m_itemCatalog, placements);
 
-    // Um modelo por tipo de item (compartilhado por todos os itens daquele tipo)
-    for (const ItemPlacement& placement : placements) {
-        if (m_itemMeshes.count(placement.itemId) == 0) {
-            const ItemDefinition* definition = m_itemCatalog.find(placement.itemId);
-            m_itemMeshes[placement.itemId] = definition != nullptr
-                ? ItemModels::build(definition->model, definition->color)
-                : ItemModels::build("", { 1.0f, 1.0f, 1.0f });
-        }
-    }
-
     for (size_t i = 0; i < placements.size(); ++i) {
         const ItemPlacement& p = placements[i];
-        float y = groundHeight(p.x, p.z);
-        m_items.push_back(Item(p.itemId, p.quantity, &m_itemMeshes[p.itemId], p.x, y, p.z, static_cast<float>(i) * 1.3f));
-        m_interactables.push_back({ Kind::Item, static_cast<int>(i), { p.x, y + 0.3f, p.z }, 1.8f, 0.6f,
-                                    "", InteractionSound::Pickup, 0.0f });
+
+        if (p.decoration) {
+            // Decoracao: entra numa malha fixa, deitada no chao e sem brilho
+            float matrix[16];
+            placeMatrix(p.x, groundHeight(p.x, p.z) + 0.02f, p.z, i * 47.0f, 1.3f, matrix);
+            m_decorations.append(*itemMesh(p.itemId), matrix);
+            continue;
+        }
+
+        addItem(p.itemId, p.quantity, p.x, p.z);
     }
+}
+
+const Mesh* MaceioScene::getItemMesh(const std::string& itemId)
+{
+    return itemMesh(itemId);
+}
+
+void MaceioScene::dropItem(const std::string& itemId, const Vec3& position, float yawDegrees)
+{
+    // Cai um pouco a frente da Lia; se ali for agua funda, cai aos pes dela
+    Vec3 forward = forwardFromYaw(yawDegrees);
+    float x = position.x + forward.x * 0.8f;
+    float z = position.z + forward.z * 0.8f;
+
+    if (!isWalkable(x, z)) {
+        x = position.x;
+        z = position.z;
+    }
+
+    addItem(itemId, 1, x, z);
 }
 
 bool MaceioScene::isAvailable(const Interactable& item) const
 {
+    if (item.kind == Kind::Boat) {
+        return !m_boatOccupied;
+    }
     return item.kind != Kind::Item || !m_items[item.index].isCollected();
 }
 
@@ -651,7 +698,7 @@ void MaceioScene::setFocus(int id)
 
 Interaction MaceioScene::interact(int id)
 {
-    Interaction result = { "", InteractionSound::Chime, "", 0 };
+    Interaction result = { "", InteractionSound::Chime, "", 0, false };
 
     if (id < 0 || id >= static_cast<int>(m_interactables.size())) {
         return result;
@@ -662,6 +709,10 @@ Interaction MaceioScene::interact(int id)
 
     if (item.kind == Kind::Palm) {
         m_palms[item.index].shake = 1.0f;
+    }
+
+    if (item.kind == Kind::Boat) {
+        result.boat = true;
     }
 
     if (item.kind == Kind::Item) {
@@ -682,6 +733,60 @@ Interaction MaceioScene::interact(int id)
 Boat& MaceioScene::getBoat()
 {
     return m_boat;
+}
+
+bool MaceioScene::isNavigable(float x, float z) const
+{
+    // Limite da area de Maceio (o barco nao sai do mapa)
+    if (x < -65.0f || x > 65.0f || z < -55.0f || z > -2.0f) {
+        return false;
+    }
+
+    // Longe do pier (com folga para o casco)
+    if (std::fabs(x - PIER_X) < PIER_WIDTH * 0.5f + 0.6f && z <= PIER_Z + 0.6f && z >= PIER_Z - PIER_LENGTH - 0.6f) {
+        return false;
+    }
+
+    // Agua funda o bastante para o casco nao encalhar
+    return terrainHeight(x, z) < -0.45f;
+}
+
+bool MaceioScene::findLanding(const Vec3& boatPosition, Vec3& landing) const
+{
+    // Procura, em volta do barco, o ponto mais proximo onde a Lia pode pisar
+    float best = 1e9f;
+    bool found = false;
+
+    for (int ring = 0; ring < 6; ++ring) {
+        float distance = 1.0f + ring * 0.45f;
+        for (int i = 0; i < 16; ++i) {
+            float angle = 2.0f * PI * i / 16.0f;
+            float x = boatPosition.x + std::cos(angle) * distance;
+            float z = boatPosition.z + std::sin(angle) * distance;
+
+            if (isWalkable(x, z) && distance < best) {
+                best = distance;
+                landing = { x, groundHeight(x, z), z };
+                found = true;
+            }
+        }
+        if (found) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void MaceioScene::setBoatOccupied(bool occupied)
+{
+    m_boatOccupied = occupied;
+}
+
+bool MaceioScene::isBoat(int interactableId) const
+{
+    return interactableId >= 0 && interactableId < static_cast<int>(m_interactables.size()) &&
+           m_interactables[interactableId].kind == Kind::Boat;
 }
 
 const Light& MaceioScene::getLight() const
@@ -831,6 +936,13 @@ void MaceioScene::drawOpaque(Renderer& renderer, float time)
     for (const Item& item : m_items) {
         item.draw(renderer, time);
     }
+
+    Material decoration;
+    decoration.twoSided = true;
+    decoration.specular = 0.2f;
+    float decorationMatrix[16];
+    identity(decorationMatrix);
+    renderer.draw(m_decorations, decorationMatrix, decoration);
 }
 
 void MaceioScene::drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity)

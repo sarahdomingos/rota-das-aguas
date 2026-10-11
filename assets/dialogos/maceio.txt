@@ -41,16 +41,31 @@ Lia: Hum, que cheiro bom! Quanto custa a tapioca?
 Dona Graça: Cinco reais cada uma. Se você levar duas, quanto vai pagar?
 Lia: Cinco mais cinco... dez reais!
 
-# --- Missão: Cocos para a tapioca (assets/missoes/maceio.txt)
+# --- Missão: Cocos para a tapioca da festa (assets/missoes/maceio.txt)
 
 [graca_pedido]
-Dona Graça: Lia, querida, preciso da sua ajuda! Hoje é dia de tapioca de coco.
-Dona Graça: Eu tenho 2 cocos, mas a receita pede 5. Caíram alguns pela orla com o vento.
-Lia: Pode deixar! Vou procurar 3 cocos e trago para a senhora.
+Dona Graça: Lia, querida, preciso da sua ajuda! A tapioca da Festa das Águas vai ser enorme.
+Dona Graça: Eu tenho 20 cocos, mas preciso de mais 25% disso. Caíram vários cocos pela orla com o vento.
+Lia: 25%... Vou fazer a conta, pegar a quantidade certa e trazer para a senhora!
 
-[graca_andamento]
-Dona Graça: Ainda faltam cocos, Lia. Procure perto dos coqueiros, na areia.
+[graca_erro]
+Dona Graça: Não está certo, confere a conta.
 
 [graca_conclusao]
-Lia: Achei! Trouxe 3 cocos para a senhora.
-Dona Graça: Que maravilha! Com os meus 2, agora tenho cocos para a receita toda.
+Lia: Trouxe os cocos, Dona Graça!
+Dona Graça: Exatamente o que eu precisava! Obrigada, Lia.
+
+# --- Missão: Praia limpa para a Festa das Águas
+
+[bene_pedido]
+Seu Bené: Lia, a festa está chegando e a praia precisa estar limpa.
+Seu Bené: Hoje cedo eu recolhi 18 lixos. Isso foi 3/4 de todo o lixo que tinha por aqui.
+Seu Bené: O resto está espalhado na areia, no píer e até boiando no mar. Você me ajuda?
+Lia: Ajudo! Primeiro vou descobrir quanto falta. Para o lixo do mar, eu vou de barco.
+
+[bene_erro]
+Seu Bené: Não está certo, confere a conta.
+
+[bene_conclusao]
+Lia: Recolhi o lixo que faltava, Seu Bené!
+Seu Bené: Muito bem! Agora a praia está limpinha para a Festa das Águas.

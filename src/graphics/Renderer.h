@@ -49,12 +49,19 @@ public:
     void setMaterial2D(const Texture* texture);
     void end2D();
 
+    // Modelos 3D pequenos dentro da interface (quadro da missao): coordenadas em
+    // pixels (origem no canto superior esquerdo), com luz propria e profundidade.
+    void beginIcons(int width, int height);
+    void drawIcon(const Mesh& mesh, float x, float y, float size, float yawDegrees);
+    void endIcons(int width, int height);
+
     // A agua nao e desenhada dentro do casco do barco (veja basic.frag).
     void setBoatMask(const float boatMatrix[16]);
     void clearBoatMask();
 
 private:
     Shader m_shader;
+    float m_iconScreenHeight = 0.0f;
 
     void setObjectUniforms(const float modelMatrix[16], const Material& material);
 };

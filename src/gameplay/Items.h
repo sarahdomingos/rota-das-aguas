@@ -25,6 +25,7 @@ struct ItemPlacement {
     float x;
     float z;
     int quantity;
+    bool decoration;    // so enfeite: sem brilho, sem interacao
 };
 
 class ItemCatalog {
