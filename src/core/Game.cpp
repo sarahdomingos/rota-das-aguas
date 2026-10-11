@@ -17,7 +17,7 @@ using namespace MathUtils;
 namespace {
 
 const char* TITLE = "Rota das Águas - Maceió";
-const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  I: mochila  ·  M: música  ·  Esc/P: pausa";
+const char* HINT = "WASD: andar  ·  Shift: correr  ·  arrastar o mouse: câmera  ·  roda: zoom  ·  clique ou E: interagir  ·  I: mochila  ·  Tab: missão  ·  M: música  ·  Esc/P: pausa";
 
 const float MUSIC_VOLUME = 0.28f;
 
@@ -68,7 +68,8 @@ const char* PAUSE_LINES[] = {
     "Arrastar o mouse: girar a câmera  ·  Roda: zoom",
     "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
     "R / T: girar o barco  ·  Z / X: tamanho do barco",
-    "I: mochila (inventário)  ·  M: música  ·  F12: captura de tela",
+    "I: mochila (inventário)  ·  Tab: quadro da missão  ·  M: música",
+    "F12: captura de tela",
     "F2: teste de transição"
 };
 
@@ -87,7 +88,8 @@ Game::Game()
       m_stateBeforePause(GameState::Playing),
       m_transitionTimer(0.0f),
       m_toastTimer(0.0f),
-      m_inventorySelection(0)
+      m_inventorySelection(0),
+      m_answerValue(0)
 {
 }
 
@@ -175,10 +177,20 @@ bool Game::init()
         startChallenge("cocos_graca", variables);
     }
     if (testState != nullptr && std::string(testState) == "missao") {
-        m_quests.dialogueFor("vendedora", m_inventory);
-        m_quests.onDialogueClosed(m_inventory);
+        m_quests.start("cocos_graca");
         m_inventory.add("coco", 1);
         changeState(GameState::Playing);
+    }
+    if (testState != nullptr && std::string(testState) == "quadro") {
+        m_quests.start("cocos_graca");
+        m_inventory.add("coco", 2);
+        openBoard("cocos_graca");
+    }
+    if (testState != nullptr && std::string(testState) == "entrega") {
+        m_quests.start("cocos_graca");
+        m_answerQuest = "cocos_graca";
+        m_answerValue = 4;
+        changeState(GameState::Answer);
     }
     if (testState != nullptr && std::string(testState) == "mochila") {
         m_inventory.add("coco", 2);
@@ -299,7 +311,20 @@ void Game::handleInteraction()
         m_audio.play(m_chime, 0.25f, false);
     }
 
-    openDialogue(m_quests.dialogueFor(result.dialogueId, m_inventory));
+    const QuestDefinition* quest = m_quests.openQuestFor(result.dialogueId);
+
+    if (quest != nullptr && m_quests.status(quest->id) == QuestStatus::Available) {
+        m_pendingQuestStart = quest->id;
+        openDialogue(quest->dialogueStart.empty() ? result.dialogueId : quest->dialogueStart);
+    }
+    else if (quest != nullptr) {
+        m_answerQuest = quest->id;
+        m_answerValue = 0;
+        changeState(GameState::Answer);
+    }
+    else {
+        openDialogue(result.dialogueId);
+    }
 }
 
 void Game::handleBoatControls(float deltaTime)
@@ -384,28 +409,128 @@ void Game::onItemCollected(const std::string& itemId, int quantity)
 
 void Game::onDialogueFinished()
 {
-    QuestEvent event = m_quests.onDialogueClosed(m_inventory);
+    // Fim do pedido do NPC: a missao comeca e o quadro abre sozinho
+    if (!m_pendingQuestStart.empty()) {
+        std::string id = m_pendingQuestStart;
+        m_pendingQuestStart.clear();
+        m_quests.start(id);
 
-    if (!event.startedId.empty()) {
-        const QuestDefinition* quest = m_quests.find(event.startedId);
-        showToast("Nova missão: " + (quest != nullptr ? quest->title : event.startedId));
+        const QuestDefinition* quest = m_quests.find(id);
+        showToast("Nova missão: " + (quest != nullptr ? quest->title : id));
         m_audio.play(m_chime, 0.4f, false);
+        openBoard(id);
+        return;
     }
 
-    if (!event.completedId.empty()) {
-        const QuestDefinition* quest = m_quests.find(event.completedId);
-        showToast("Missão concluída: " + (quest != nullptr ? quest->title : event.completedId));
+    // Fim da fala de conclusao: mostra a conta montada
+    if (!m_pendingChallengeQuest.empty()) {
+        const QuestDefinition* quest = m_quests.find(m_pendingChallengeQuest);
+        m_pendingChallengeQuest.clear();
 
-        if (!event.challengeId.empty()) {
-            // Variaveis da conta a partir do que o jogador fez
-            std::map<std::string, int> variables;
-            variables["entregue"] = event.delivered;
-            variables["tinha"] = (quest != nullptr ? m_inventory.count(quest->itemId) : 0) + event.delivered;
-            startChallenge(event.challengeId, variables);
+        if (quest != nullptr && !quest->challenge.empty()) {
+            startChallenge(quest->challenge, std::map<std::string, int>());
+        }
+    }
+}
+
+int Game::countFor(const std::string& itemKey) const
+{
+    // A missao pode pedir um item (ex.: "coco") ou uma categoria inteira (ex.: "lixo")
+    const ItemCatalog& catalog = m_scene->getItemCatalog();
+    int total = 0;
+
+    for (const std::pair<std::string, int>& entry : m_inventory.entries()) {
+        const ItemDefinition* definition = catalog.find(entry.first);
+        if (entry.first == itemKey || (definition != nullptr && definition->category == itemKey)) {
+            total += entry.second;
+        }
+    }
+    return total;
+}
+
+bool Game::removeFor(const std::string& itemKey, int quantity)
+{
+    if (countFor(itemKey) < quantity) {
+        return false;
+    }
+
+    const ItemCatalog& catalog = m_scene->getItemCatalog();
+    for (const std::pair<std::string, int>& entry : m_inventory.entries()) {
+        if (quantity <= 0) break;
+
+        const ItemDefinition* definition = catalog.find(entry.first);
+        if (entry.first == itemKey || (definition != nullptr && definition->category == itemKey)) {
+            int amount = entry.second < quantity ? entry.second : quantity;
+            m_inventory.remove(entry.first, amount);
+            quantity -= amount;
+        }
+    }
+    return true;
+}
+
+std::string Game::itemNameFor(const std::string& itemKey) const
+{
+    const ItemDefinition* definition = m_scene->getItemCatalog().find(itemKey);
+    if (definition != nullptr) {
+        return definition->name;
+    }
+
+    // Categoria: primeira letra maiuscula (ex.: "lixo" -> "Lixo")
+    std::string name = itemKey;
+    if (!name.empty() && name[0] >= 'a' && name[0] <= 'z') {
+        name[0] = static_cast<char>(name[0] - 'a' + 'A');
+    }
+    return name;
+}
+
+int Game::answerFor(const QuestDefinition& quest)
+{
+    // O resultado da conta do desafio e a quantidade certa a entregar
+    MathChallenge challenge;
+    if (!m_challenges.build(quest.challenge, std::map<std::string, int>(), challenge) || !challenge.valid) {
+        return -1;
+    }
+    return challenge.result;
+}
+
+void Game::openBoard(const std::string& questId)
+{
+    m_boardQuest = questId;
+    changeState(GameState::Board);
+}
+
+void Game::confirmAnswer()
+{
+    const QuestDefinition* quest = m_quests.find(m_answerQuest);
+    if (quest == nullptr) {
+        changeState(GameState::Playing);
+        return;
+    }
+
+    m_quests.addAttempt(quest->id);
+
+    // So conclui com a resposta certa E exatamente essa quantidade na mochila
+    int answer = answerFor(*quest);
+    bool correct = answer >= 0 && m_answerValue == answer && countFor(quest->itemKey) == answer;
+
+    changeState(GameState::Playing);
+
+    if (correct) {
+        removeFor(quest->itemKey, answer);
+        m_quests.complete(quest->id);
+        showToast("Missão concluída: " + quest->title);
+        m_pendingChallengeQuest = quest->id;
+
+        if (quest->dialogueComplete.empty() || !m_dialogue.has(quest->dialogueComplete)) {
+            onDialogueFinished();
         }
         else {
-            m_audio.play(m_pickup, 0.5f, false);
+            openDialogue(quest->dialogueComplete);
         }
+    }
+    else {
+        // Errou: so o aviso do NPC, sem dica; a Lia precisa falar com ele de novo
+        openDialogue(quest->dialogueWrong);
     }
 }
 
@@ -539,6 +664,36 @@ void Game::update(float deltaTime)
         return;
     }
 
+    // QUADRO DA MISSAO: fecha com Tab, Esc, E, Enter ou Espaco
+    if (m_state == GameState::Board) {
+        if (Input::wasKeyPressed(GLFW_KEY_TAB) || Input::wasKeyPressed(GLFW_KEY_ESCAPE) || Input::wasKeyPressed(GLFW_KEY_E) ||
+            Input::wasKeyPressed(GLFW_KEY_ENTER) || Input::wasKeyPressed(GLFW_KEY_SPACE)) {
+            changeState(GameState::Playing);
+        }
+        return;
+    }
+
+    // ENTREGA: setas mudam o numero, Enter/E confirmam, Esc volta sem contar tentativa
+    if (m_state == GameState::Answer) {
+        if (Input::wasKeyPressed(GLFW_KEY_RIGHT) || Input::wasKeyPressed(GLFW_KEY_UP) ||
+            Input::wasKeyPressed(GLFW_KEY_D) || Input::wasKeyPressed(GLFW_KEY_W)) {
+            m_answerValue = m_answerValue < 999 ? m_answerValue + 1 : 999;
+            m_audio.play(m_blip, 0.25f, false);
+        }
+        if (Input::wasKeyPressed(GLFW_KEY_LEFT) || Input::wasKeyPressed(GLFW_KEY_DOWN) ||
+            Input::wasKeyPressed(GLFW_KEY_A) || Input::wasKeyPressed(GLFW_KEY_S)) {
+            m_answerValue = m_answerValue > 0 ? m_answerValue - 1 : 0;
+            m_audio.play(m_blip, 0.25f, false);
+        }
+        if (Input::wasKeyPressed(GLFW_KEY_ENTER) || Input::wasKeyPressed(GLFW_KEY_E)) {
+            confirmAnswer();
+        }
+        else if (Input::wasKeyPressed(GLFW_KEY_ESCAPE)) {
+            changeState(GameState::Playing);
+        }
+        return;
+    }
+
     // PAUSA: o mundo para; so da para continuar ou sair do jogo
     if (m_state == GameState::Paused) {
         if (pauseKey) {
@@ -574,6 +729,15 @@ void Game::update(float deltaTime)
 
         if (Input::wasKeyPressed(GLFW_KEY_I)) {
             changeState(GameState::Inventory);
+        }
+        else if (Input::wasKeyPressed(GLFW_KEY_TAB)) {
+            const QuestDefinition* quest = m_quests.activeQuest();
+            if (quest != nullptr) {
+                openBoard(quest->id);
+            }
+            else {
+                showToast("Nenhuma missão em andamento.");
+            }
         }
         else if (Input::wasKeyPressed(GLFW_KEY_F2)) {
             changeState(GameState::Transition);
@@ -617,6 +781,8 @@ void Game::update(float deltaTime)
 
     case GameState::Paused:
     case GameState::Inventory:
+    case GameState::Board:
+    case GameState::Answer:
         break;
     }
 }
@@ -656,7 +822,7 @@ void Game::renderInterface()
     m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
     m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
 
-    if (m_state != GameState::Inventory && m_state != GameState::Paused) {
+    if (m_state == GameState::Playing || m_state == GameState::Dialogue) {
         renderHud(ui, width);
     }
 
@@ -740,6 +906,14 @@ void Game::renderInterface()
         renderInventoryScreen(ui, width, height);
     }
 
+    if (m_state == GameState::Board) {
+        renderBoard(ui, width, height);
+    }
+
+    if (m_state == GameState::Answer) {
+        renderAnswer(ui, width, height);
+    }
+
     // PAUSA: escurece a cena parada e mostra os controles
     if (m_state == GameState::Paused) {
         m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.55f });
@@ -778,8 +952,8 @@ void Game::renderHud(float ui, int width)
     // Missao atual, no canto superior esquerdo (abaixo da dica de controles)
     if (const QuestDefinition* quest = m_quests.activeQuest()) {
         char progress[96];
-        std::snprintf(progress, sizeof(progress), "%s: %d", m_scene->getItemCatalog().nameOf(quest->itemId).c_str(),
-                      m_inventory.count(quest->itemId));
+        std::snprintf(progress, sizeof(progress), "%s: %d   ·   Tab: quadro da missão", itemNameFor(quest->itemKey).c_str(),
+                      countFor(quest->itemKey));
 
         float titleScale = 0.6f * ui;
         float lineScale = 0.5f * ui;
@@ -787,7 +961,7 @@ void Game::renderHud(float ui, int width)
         float x = 10.0f * ui;
         float y = 46.0f * ui;
 
-        std::vector<std::string> lines = m_text.wrap(quest->objective, lineScale, boxWidth - 24.0f * ui);
+        std::vector<std::string> lines = m_text.wrap("Ajude " + quest->giverName + " a " + quest->task + ".", lineScale, boxWidth - 24.0f * ui);
         float boxHeight = m_text.lineHeight(titleScale) + (lines.size() + 1) * m_text.lineHeight(lineScale) + 16.0f * ui;
 
         m_text.drawBox(x, y, boxWidth, boxHeight, { 0.0f, 0.0f, 0.0f, 0.35f });
@@ -885,4 +1059,143 @@ void Game::renderInventoryScreen(float ui, int width, int height)
     y = height * 0.2f + m_text.lineHeight(titleScale) + 14.0f * ui + panelHeight + 24.0f * ui;
     const char* hint = "Setas: escolher  ·  G ou clique: soltar 1  ·  I ou Esc: fechar a mochila";
     m_text.drawText((width - m_text.measure(hint, 0.6f * ui)) * 0.5f, y, hint, 0.6f * ui, { 1.0f, 1.0f, 1.0f, 0.8f });
+}
+
+void Game::renderBoard(float ui, int width, int height)
+{
+    const QuestDefinition* quest = m_quests.find(m_boardQuest);
+    if (quest == nullptr) {
+        return;
+    }
+
+    m_text.drawBox(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), { 0.0f, 0.0f, 0.0f, 0.6f });
+
+    const Color yellow = { 1.0f, 0.85f, 0.4f, 1.0f };
+    const Color white = { 1.0f, 1.0f, 1.0f, 0.95f };
+    const Color panel = { 0.05f, 0.08f, 0.12f, 0.88f };
+
+    float margin = width * 0.06f;
+    float y = height * 0.07f;
+
+    // Topo: titulo e o pedido de ajuda
+    m_text.drawText(margin, y, "MISSÃO: " + quest->title, 1.2f * ui, yellow);
+    y += m_text.lineHeight(1.2f * ui) + 4.0f * ui;
+
+    std::string help = quest->giverName + " precisa da sua ajuda! Ajude-" + quest->pronoun + " a " + quest->task + ".";
+    y += m_text.drawWrapped(margin, y, width - 2.0f * margin, help, 0.7f * ui, white) + 14.0f * ui;
+
+    float panelTop = y;
+    float panelBottom = height - 60.0f * ui;
+    float leftWidth = (width - 2.0f * margin) * 0.38f;
+    float rightX = margin + leftWidth + 20.0f * ui;
+    float rightWidth = width - margin - rightX;
+    float pad = 16.0f * ui;
+
+    m_text.drawBox(margin, panelTop, leftWidth, panelBottom - panelTop, panel);
+    m_text.drawBox(rightX, panelTop, rightWidth, panelBottom - panelTop, panel);
+
+    // Painel esquerdo: dados do problema e passo a passo (sem o resultado)
+    float lineScale = 0.55f * ui;
+    float textWidth = leftWidth - 2.0f * pad;
+    float ly = panelTop + pad;
+
+    m_text.drawText(margin + pad, ly, "Dados do problema", 0.62f * ui, yellow);
+    ly += m_text.lineHeight(0.62f * ui) + 4.0f * ui;
+    for (const std::string& fact : quest->facts) {
+        ly += m_text.drawWrapped(margin + pad, ly, textWidth, "• " + fact, lineScale, white) + 4.0f * ui;
+    }
+
+    ly += 12.0f * ui;
+    m_text.drawText(margin + pad, ly, "Passo a passo", 0.62f * ui, yellow);
+    ly += m_text.lineHeight(0.62f * ui) + 4.0f * ui;
+    for (size_t i = 0; i < quest->steps.size(); ++i) {
+        char number[8];
+        std::snprintf(number, sizeof(number), "%d. ", static_cast<int>(i + 1));
+        ly += m_text.drawWrapped(margin + pad, ly, textWidth, number + quest->steps[i], lineScale, white) + 4.0f * ui;
+    }
+
+    // Painel direito: os itens em 3D, agrupados em fileiras, e o que esta na mochila
+    struct Icon { const Mesh* mesh; float x; float y; float size; };
+    std::vector<Icon> icons;
+
+    float ry = panelTop + pad;
+    float cell = 42.0f * ui;
+
+    for (const QuestIllustration& group : quest->illustrations) {
+        m_text.drawText(rightX + pad, ry, group.label, 0.6f * ui, yellow);
+        ry += m_text.lineHeight(0.6f * ui) + 4.0f * ui;
+
+        const Mesh* mesh = m_scene->getItemMesh(group.itemId);
+        int rows = (group.count + group.perRow - 1) / group.perRow;
+        float size = cell * 0.9f;
+        if (group.perRow * cell > rightWidth - 2.0f * pad) {
+            size = (rightWidth - 2.0f * pad) / group.perRow * 0.9f;
+        }
+        float step = size / 0.9f;
+
+        for (int i = 0; i < group.count; ++i) {
+            int row = i / group.perRow;
+            int column = i % group.perRow;
+            icons.push_back({ mesh, rightX + pad + (column + 0.5f) * step, ry + (row + 0.5f) * step * 0.85f, size });
+        }
+
+        ry += rows * step * 0.85f + 14.0f * ui;
+    }
+
+    char carried[96];
+    std::snprintf(carried, sizeof(carried), "Na mochila: %d", countFor(quest->itemKey));
+    m_text.drawText(rightX + pad, panelBottom - pad - m_text.lineHeight(0.65f * ui), carried, 0.65f * ui, { 0.75f, 0.95f, 0.75f, 1.0f });
+
+    const char* hint = "Tab, Esc ou E: fechar o quadro   ·   para entregar, fale com quem pediu";
+    m_text.drawText((width - m_text.measure(hint, 0.5f * ui)) * 0.5f, height - 40.0f * ui, hint, 0.5f * ui, { 1.0f, 1.0f, 1.0f, 0.75f });
+
+    // Os modelos 3D por ultimo, girando, por cima dos paineis
+    m_renderer.beginIcons(width, height);
+    for (size_t i = 0; i < icons.size(); ++i) {
+        if (icons[i].mesh != nullptr) {
+            m_renderer.drawIcon(*icons[i].mesh, icons[i].x, icons[i].y, icons[i].size, m_time * 50.0f + i * 23.0f);
+        }
+    }
+    m_renderer.endIcons(width, height);
+}
+
+void Game::renderAnswer(float ui, int width, int height)
+{
+    const QuestDefinition* quest = m_quests.find(m_answerQuest);
+    if (quest == nullptr) {
+        return;
+    }
+
+    float scale = 0.75f * ui;
+    float padding = 18.0f * ui;
+    float boxWidth = width * 0.7f;
+    float boxHeight = 220.0f * ui;
+    float boxX = (width - boxWidth) * 0.5f;
+    float boxY = height - boxHeight - 30.0f * ui;
+    Color accent = { 0.98f, 0.76f, 0.24f, 0.95f };
+
+    m_text.drawBox(boxX, boxY, boxWidth, boxHeight, { 0.05f, 0.08f, 0.12f, 0.85f });
+    m_text.drawBox(boxX, boxY, boxWidth, 3.0f * ui, accent);
+
+    // Etiqueta com o nome de quem pediu
+    float nameScale = 0.7f * ui;
+    float nameWidth = m_text.measure(quest->giverName, nameScale) + 2.0f * padding;
+    float nameHeight = m_text.lineHeight(nameScale) + 8.0f * ui;
+    m_text.drawBox(boxX, boxY - nameHeight, nameWidth, nameHeight, accent);
+    m_text.drawText(boxX + padding, boxY - nameHeight + 4.0f * ui, quest->giverName, nameScale, { 0.08f, 0.08f, 0.1f, 1.0f });
+
+    std::string question = "Qual é o resultado da conta? Essa é a quantidade de " + itemNameFor(quest->itemKey) +
+                           " que você vai me entregar.";
+    m_text.drawWrapped(boxX + padding, boxY + padding, boxWidth - 2.0f * padding, question, scale, { 1.0f, 1.0f, 1.0f, 1.0f });
+
+    // Seletor do numero
+    char number[32];
+    std::snprintf(number, sizeof(number), "<   %d   >", m_answerValue);
+    float bigScale = 1.6f * ui;
+    m_text.drawText((width - m_text.measure(number, bigScale)) * 0.5f, boxY + 80.0f * ui, number, bigScale, { 1.0f, 0.9f, 0.5f, 1.0f });
+
+    const char* hint = "Setas: mudar o número  ·  Enter ou E: confirmar  ·  Esc: voltar";
+    float hintScale = 0.5f * ui;
+    m_text.drawText((width - m_text.measure(hint, hintScale)) * 0.5f, boxY + boxHeight - padding - m_text.lineHeight(hintScale),
+                    hint, hintScale, { 1.0f, 1.0f, 1.0f, 0.65f });
 }

@@ -19,13 +19,34 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
 ### Adicionado
 - **Soltar itens:** na mochila (I), as setas escolhem o item, e G (ou um clique na linha) solta 1 unidade. O item cai no chão, um pouco à frente da Lia, e pode ser pego de novo. A mochila não tem limite.
 - **Decoração** em `assets/itens/maceio.txt`: linhas `decoracao | id | x | z` enfeitam a cena sem brilho, sem interação e sem coleta.
+- **Quadro da missão** (estado `GameState::Board`), seguindo o esboço da equipe:
+  - abre sozinho no fim da fala em que o NPC pede ajuda e reabre com Tab;
+  - no topo, "MISSÃO: <título>" e "<NPC> precisa da sua ajuda! Ajude-a a <tarefa>";
+  - à esquerda, os dados do problema e o passo a passo, que guia sem nunca mostrar o resultado;
+  - à direita, os modelos 3D dos itens girando, agrupados em fileiras, e a linha "Na mochila: X";
+  - todo o conteúdo vem do arquivo de missões.
+- **Entrega com resposta** (estado `GameState::Answer`):
+  - ao falar com o NPC de uma missão em andamento, a Lia escolhe o resultado da conta com as setas (começa em 0) e confirma com Enter ou E; Esc volta sem contar tentativa;
+  - a missão só é concluída se a resposta estiver certa e a mochila tiver exatamente essa quantidade;
+  - se errar, o NPC diz só "Não está certo, confere a conta.", sem dica, e a Lia precisa falar com ele de novo;
+  - as tentativas são ilimitadas e contadas por missão.
+- `Renderer::beginIcons`, `drawIcon` e `endIcons` desenham os modelos 3D dos itens dentro da interface, com luz própria.
+- As missões podem pedir um item ou uma categoria inteira (ex.: "lixo").
+- Testes: `ROTA_TEST_STATE=quadro` e `ROTA_TEST_STATE=entrega`.
 
 ### Alterado
 - **Conchas viraram decoração** na areia (não brilham e não podem ser pegas).
 - **HUD da missão:** mostra só quantos itens a Lia carrega (ex.: "Coco: 1"), sem o total nem quanto falta.
+- **Formato de `assets/missoes/maceio.txt`:**
+  - campos novos: `nome`, `pronome`, `tarefa`, `item`, `dado`, `passo`, `ilustracao` e `dialogo_erro`;
+  - o resultado do `desafio` é a quantidade exata a entregar.
+- O desafio (conta montada) aparece depois da fala de conclusão.
+- O HUD da missão mostra a tarefa e a dica "Tab: quadro da missão".
+- As dicas de controle e a tela de pausa incluem Tab.
 
 ### Removido
 - O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).
+- Os campos `objetivo`, `condicao` e `dialogo_andamento` das missões, e as variáveis `{entregue}` e `{tinha}` dos desafios (agora a conta é conhecida antes da entrega).
 
 ## 2026-10-07 — Etapa A8: desafios matemáticos
 

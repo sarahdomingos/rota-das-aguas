@@ -29,7 +29,9 @@ enum class GameState {
     Challenge,
     Paused,
     Transition,
-    Inventory   // tela da mochila: o mundo para, como na pausa
+    Inventory,  // tela da mochila: o mundo para, como na pausa
+    Board,      // quadro da missao (dados do problema e passo a passo)
+    Answer      // entrega: a Lia escolhe o resultado da conta
 };
 
 class Game {
@@ -88,6 +90,13 @@ private:
     int m_inventorySelection;
     std::vector<InventoryRow> m_inventoryRows;
 
+    // Missoes: quadro, entrega com resposta e desafio mostrado depois da conclusao
+    std::string m_pendingQuestStart;
+    std::string m_pendingChallengeQuest;
+    std::string m_boardQuest;
+    std::string m_answerQuest;
+    int m_answerValue;
+
     void changeState(GameState next);
     void enterState(GameState state);
     void exitState(GameState state);
@@ -96,6 +105,15 @@ private:
     void showToast(const std::string& text);
     void updateInventoryScreen();
     void dropFromInventory(const std::string& itemId);
+
+    int countFor(const std::string& itemKey) const;
+    bool removeFor(const std::string& itemKey, int quantity);
+    int answerFor(const QuestDefinition& quest);
+    std::string itemNameFor(const std::string& itemKey) const;
+    void openBoard(const std::string& questId);
+    void confirmAnswer();
+    void renderBoard(float ui, int width, int height);
+    void renderAnswer(float ui, int width, int height);
     void onDialogueFinished();
     void startChallenge(const std::string& id, const std::map<std::string, int>& variables);
 

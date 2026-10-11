@@ -5,27 +5,43 @@
 # - Depois, uma linha por campo, no formato   campo: valor
 #
 # Campos:
-#   titulo:            nome curto da missão (aparece no HUD)
-#   objetivo:          o que a Lia precisa fazer
-#   quem:              id de diálogo do NPC/objeto que pede e recebe (ex.: vendedora, pescador, barco)
-#   condicao:          entregar <item> <quantidade>   (tira os itens da mochila ao concluir)
-#                      ter <item> <quantidade>        (só precisa ter, não tira)
+#   titulo:            nome curto da missão (aparece no quadro e no HUD)
+#   quem:              id de diálogo do NPC que pede e recebe (ex.: vendedora, pescador)
+#   nome:              nome do NPC na tela (ex.: Dona Graça)
+#   pronome:           a ou o  (para "Ajude-a" / "Ajude-o")
+#   tarefa:            o que a Lia deve fazer, completando "Ajude-a a ..."
+#   item:              id do item (assets/itens) ou categoria que será entregue
+#   dado:              um dado do problema (pode repetir a linha; aparece no quadro)
+#   passo:             um passo que guia a criança SEM dar o resultado (pode repetir)
+#   ilustracao:        rótulo | item | quantidade | itens por fileira  (modelos 3D no quadro; pode repetir)
 #   inicial:           sim  se a missão já está liberada no começo do capítulo
-#   dialogo_inicio:    diálogo ao pedir a missão (arquivo assets/dialogos)
-#   dialogo_andamento: diálogo enquanto a condição não foi cumprida
-#   dialogo_conclusao: diálogo ao entregar/concluir
-#   desafio:           id do desafio de matemática mostrado ao concluir (assets/desafios), opcional
+#   dialogo_inicio:    diálogo do pedido (o quadro abre sozinho no fim dele)
+#   dialogo_erro:      diálogo quando a resposta ou a quantidade estão erradas
+#   dialogo_conclusao: diálogo quando a entrega está certa
+#   desafio:           id do desafio (assets/desafios). O RESULTADO da conta é a
+#                      quantidade exata que a Lia precisa entregar.
 #   proxima:           id da missão liberada depois desta, opcional
 #
-# Os ids de item vêm de assets/itens; os de diálogo, de assets/dialogos.
+# Na entrega, a Lia escolhe o resultado da conta; só conclui se a resposta
+# estiver certa E a mochila tiver exatamente essa quantidade do item.
 
 [cocos_graca]
 titulo: Cocos para a tapioca
-objetivo: Encontre 3 cocos pela orla e leve para a Dona Graça.
 quem: vendedora
-condicao: entregar coco 3
+nome: Dona Graça
+pronome: a
+tarefa: conseguir os cocos que faltam para a tapioca
+item: coco
+dado: A receita pede 5 cocos.
+dado: A Dona Graça já tem 2 cocos.
+passo: Veja quantos cocos a receita pede.
+passo: Veja quantos cocos a Dona Graça já tem.
+passo: Descubra quantos faltam e pegue exatamente essa quantidade.
+passo: Fale com a Dona Graça e diga o resultado da conta.
+ilustracao: A receita pede | coco | 5 | 5
+ilustracao: A Dona Graça já tem | coco | 2 | 5
 inicial: sim
 dialogo_inicio: graca_pedido
-dialogo_andamento: graca_andamento
+dialogo_erro: graca_erro
 dialogo_conclusao: graca_conclusao
 desafio: cocos_graca

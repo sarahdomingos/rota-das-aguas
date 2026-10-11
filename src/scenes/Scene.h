@@ -12,6 +12,7 @@
 #include <string>
 
 class Renderer;
+class Mesh;
 class Camera;
 
 enum class Surface {
@@ -63,6 +64,9 @@ public:
 
     // Coloca no chao, perto da posicao dada, um item que a Lia soltou da mochila
     virtual void dropItem(const std::string& itemId, const Vec3& position, float yawDegrees) = 0;
+
+    // Modelo 3D de um tipo de item (icones do quadro da missao)
+    virtual const Mesh* getItemMesh(const std::string& itemId) = 0;
 
     // Catalogo dos itens da cena (nomes, categorias e cores)
     virtual const ItemCatalog& getItemCatalog() const = 0;

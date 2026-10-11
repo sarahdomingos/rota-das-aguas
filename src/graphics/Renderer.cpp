@@ -131,7 +131,7 @@ void Renderer::begin2D(int width, int height)
 {
     float projection[16];
     float view[16];
-    MathUtils::orthographic(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f, projection);
+    MathUtils::orthographic(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1000.0f, 1000.0f, projection);
     MathUtils::identity(view);
 
     m_shader.setMat4("u_projection", projection);
@@ -157,6 +157,51 @@ void Renderer::end2D()
 {
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+}
+
+void Renderer::beginIcons(int width, int height)
+{
+    // Projecao com y para cima (assim a luz bate no topo dos modelos)
+    float projection[16];
+    float view[16];
+    MathUtils::orthographic(0.0f, static_cast<float>(width), 0.0f, static_cast<float>(height), -1000.0f, 1000.0f, projection);
+    MathUtils::identity(view);
+    m_iconScreenHeight = static_cast<float>(height);
+
+    m_shader.setMat4("u_projection", projection);
+    m_shader.setMat4("u_view", view);
+    m_shader.setVec3("u_sunDir", MathUtils::normalize({ 0.35f, 0.6f, 0.75f }));
+    m_shader.setVec3("u_cameraPos", { width * 0.5f, height * 0.5f, 1000.0f });
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+}
+
+void Renderer::drawIcon(const Mesh& mesh, float x, float y, float size, float yawDegrees)
+{
+    float matrix[16];
+    float local[16];
+
+    MathUtils::translation(x, m_iconScreenHeight - y, 0.0f, matrix);
+    MathUtils::scaling(size, size, size, local);
+    MathUtils::apply(matrix, local);
+    MathUtils::rotationX(25.0f, local);
+    MathUtils::apply(matrix, local);
+    MathUtils::rotationY(yawDegrees, local);
+    MathUtils::apply(matrix, local);
+    MathUtils::translation(0.0f, -0.18f, 0.0f, local);
+    MathUtils::apply(matrix, local);
+
+    Material material;
+    material.fog = false;
+    material.twoSided = true;
+    material.specular = 0.25f;
+    draw(mesh, matrix, material);
+}
+
+void Renderer::endIcons(int width, int height)
+{
+    begin2D(width, height);
 }
 
 void Renderer::setBoatMask(const float boatMatrix[16])

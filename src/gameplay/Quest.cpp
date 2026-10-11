@@ -15,6 +15,17 @@ std::string trim(const std::string& text)
     return text.substr(start, end - start + 1);
 }
 
+std::vector<std::string> split(const std::string& line, char separator)
+{
+    std::vector<std::string> parts;
+    std::stringstream stream(line);
+    std::string part;
+    while (std::getline(stream, part, separator)) {
+        parts.push_back(trim(part));
+    }
+    return parts;
+}
+
 }
 
 bool QuestLog::loadFile(const std::string& path)
@@ -25,8 +36,8 @@ bool QuestLog::loadFile(const std::string& path)
         return false;
     }
 
-    QuestDefinition* current = nullptr;
     std::string line;
+    bool hasCurrent = false;
 
     while (std::getline(file, line)) {
         line = trim(line);
@@ -36,35 +47,46 @@ bool QuestLog::loadFile(const std::string& path)
         if (line[0] == '[' && line[line.size() - 1] == ']') {
             QuestDefinition quest;
             quest.id = trim(line.substr(1, line.size() - 2));
-            quest.deliver = true;
-            quest.amount = 1;
+            quest.pronoun = "a";
             quest.initial = false;
             m_quests.push_back(quest);
-            current = &m_quests.back();
+            hasCurrent = true;
             continue;
         }
 
         size_t colon = line.find(':');
-        if (current == nullptr || colon == std::string::npos) continue;
+        if (!hasCurrent || colon == std::string::npos) continue;
 
+        QuestDefinition& q = m_quests.back();
         std::string key = trim(line.substr(0, colon));
         std::string value = trim(line.substr(colon + 1));
 
-        if (key == "titulo") current->title = value;
-        else if (key == "objetivo") current->objective = value;
-        else if (key == "quem") current->giver = value;
-        else if (key == "inicial") current->initial = (value == "sim");
-        else if (key == "dialogo_inicio") current->dialogueStart = value;
-        else if (key == "dialogo_andamento") current->dialogueProgress = value;
-        else if (key == "dialogo_conclusao") current->dialogueComplete = value;
-        else if (key == "desafio") current->challenge = value;
-        else if (key == "proxima") current->next = value;
-        else if (key == "condicao") {
-            // "entregar coco 3" ou "ter coco 3"
-            std::stringstream words(value);
-            std::string verb;
-            words >> verb >> current->itemId >> current->amount;
-            current->deliver = (verb != "ter");
+        if (key == "titulo") q.title = value;
+        else if (key == "quem") q.giver = value;
+        else if (key == "nome") q.giverName = value;
+        else if (key == "pronome") q.pronoun = value;
+        else if (key == "tarefa") q.task = value;
+        else if (key == "item") q.itemKey = value;
+        else if (key == "dado") q.facts.push_back(value);
+        else if (key == "passo") q.steps.push_back(value);
+        else if (key == "inicial") q.initial = (value == "sim");
+        else if (key == "dialogo_inicio") q.dialogueStart = value;
+        else if (key == "dialogo_erro") q.dialogueWrong = value;
+        else if (key == "dialogo_conclusao") q.dialogueComplete = value;
+        else if (key == "desafio") q.challenge = value;
+        else if (key == "proxima") q.next = value;
+        else if (key == "ilustracao") {
+            // rotulo | item | quantidade | por fileira
+            std::vector<std::string> parts = split(value, '|');
+            if (parts.size() >= 3) {
+                QuestIllustration illustration;
+                illustration.label = parts[0];
+                illustration.itemId = parts[1];
+                illustration.count = std::atoi(parts[2].c_str());
+                illustration.perRow = parts.size() >= 4 ? std::atoi(parts[3].c_str()) : 5;
+                if (illustration.perRow < 1) illustration.perRow = 5;
+                q.illustrations.push_back(illustration);
+            }
         }
     }
 
@@ -73,6 +95,45 @@ bool QuestLog::loadFile(const std::string& path)
     }
 
     return true;
+}
+
+const QuestDefinition* QuestLog::openQuestFor(const std::string& giverId) const
+{
+    for (const QuestDefinition& quest : m_quests) {
+        QuestStatus current = status(quest.id);
+        if (quest.giver == giverId && (current == QuestStatus::Available || current == QuestStatus::Active)) {
+            return &quest;
+        }
+    }
+    return nullptr;
+}
+
+void QuestLog::start(const std::string& id)
+{
+    if (status(id) == QuestStatus::Available) {
+        m_status[id] = QuestStatus::Active;
+    }
+}
+
+void QuestLog::complete(const std::string& id)
+{
+    m_status[id] = QuestStatus::Done;
+
+    const QuestDefinition* quest = find(id);
+    if (quest != nullptr && !quest->next.empty() && status(quest->next) == QuestStatus::Locked) {
+        m_status[quest->next] = QuestStatus::Available;
+    }
+}
+
+void QuestLog::addAttempt(const std::string& id)
+{
+    m_attempts[id]++;
+}
+
+int QuestLog::attempts(const std::string& id) const
+{
+    std::map<std::string, int>::const_iterator found = m_attempts.find(id);
+    return found == m_attempts.end() ? 0 : found->second;
 }
 
 const QuestDefinition* QuestLog::find(const std::string& id) const
@@ -97,65 +158,15 @@ const QuestDefinition* QuestLog::activeQuest() const
     return nullptr;
 }
 
-int QuestLog::progress(const QuestDefinition& quest, const Inventory& inventory) const
+const std::vector<QuestDefinition>& QuestLog::all() const
 {
-    int count = inventory.count(quest.itemId);
-    return count < quest.amount ? count : quest.amount;
+    return m_quests;
 }
 
-std::string QuestLog::dialogueFor(const std::string& giverId, const Inventory& inventory)
+bool QuestLog::allDone() const
 {
-    m_pending = Pending::None;
-
     for (const QuestDefinition& quest : m_quests) {
-        if (quest.giver != giverId) continue;
-
-        QuestStatus current = status(quest.id);
-
-        if (current == QuestStatus::Available) {
-            m_pending = Pending::Start;
-            m_pendingQuest = quest.id;
-            return quest.dialogueStart.empty() ? giverId : quest.dialogueStart;
-        }
-
-        if (current == QuestStatus::Active) {
-            if (inventory.count(quest.itemId) >= quest.amount) {
-                m_pending = Pending::Complete;
-                m_pendingQuest = quest.id;
-                return quest.dialogueComplete.empty() ? giverId : quest.dialogueComplete;
-            }
-            return quest.dialogueProgress.empty() ? giverId : quest.dialogueProgress;
-        }
+        if (status(quest.id) != QuestStatus::Done) return false;
     }
-
-    return giverId;
-}
-
-QuestEvent QuestLog::onDialogueClosed(Inventory& inventory)
-{
-    QuestEvent event = { "", "", "", 0 };
-    const QuestDefinition* quest = find(m_pendingQuest);
-
-    if (quest != nullptr && m_pending == Pending::Start) {
-        m_status[quest->id] = QuestStatus::Active;
-        event.startedId = quest->id;
-    }
-    else if (quest != nullptr && m_pending == Pending::Complete) {
-        if (quest->deliver) {
-            inventory.remove(quest->itemId, quest->amount);
-            event.delivered = quest->amount;
-        }
-
-        m_status[quest->id] = QuestStatus::Done;
-        event.completedId = quest->id;
-        event.challengeId = quest->challenge;
-
-        if (!quest->next.empty() && status(quest->next) == QuestStatus::Locked) {
-            m_status[quest->next] = QuestStatus::Available;
-        }
-    }
-
-    m_pending = Pending::None;
-    m_pendingQuest.clear();
-    return event;
+    return !m_quests.empty();
 }

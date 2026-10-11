@@ -42,6 +42,7 @@ public:
     Interaction interact(int id) override;
     const ItemCatalog& getItemCatalog() const override;
     void dropItem(const std::string& itemId, const Vec3& position, float yawDegrees) override;
+    const Mesh* getItemMesh(const std::string& itemId) override;
 
     Boat& getBoat();
 

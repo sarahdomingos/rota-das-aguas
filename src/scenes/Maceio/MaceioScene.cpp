@@ -416,6 +416,11 @@ void MaceioScene::buildItems()
     }
 }
 
+const Mesh* MaceioScene::getItemMesh(const std::string& itemId)
+{
+    return itemMesh(itemId);
+}
+
 void MaceioScene::dropItem(const std::string& itemId, const Vec3& position, float yawDegrees)
 {
     // Cai um pouco a frente da Lia; se ali for agua funda, cai aos pes dela

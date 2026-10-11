@@ -46,11 +46,11 @@ Lia: Cinco mais cinco... dez reais!
 [graca_pedido]
 Dona Graça: Lia, querida, preciso da sua ajuda! Hoje é dia de tapioca de coco.
 Dona Graça: Eu tenho 2 cocos, mas a receita pede 5. Caíram alguns pela orla com o vento.
-Lia: Pode deixar! Vou procurar 3 cocos e trago para a senhora.
+Lia: Pode deixar! Vou descobrir quantos faltam e trazer para a senhora.
 
-[graca_andamento]
-Dona Graça: Ainda faltam cocos, Lia. Procure perto dos coqueiros, na areia.
+[graca_erro]
+Dona Graça: Não está certo, confere a conta.
 
 [graca_conclusao]
-Lia: Achei! Trouxe 3 cocos para a senhora.
+Lia: Trouxe os cocos que faltavam, Dona Graça!
 Dona Graça: Que maravilha! Com os meus 2, agora tenho cocos para a receita toda.
