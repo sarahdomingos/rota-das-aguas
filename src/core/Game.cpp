@@ -67,7 +67,8 @@ const char* PAUSE_LINES[] = {
     "WASD ou setas: andar  ·  Shift: correr",
     "Arrastar o mouse: girar a câmera  ·  Roda: zoom",
     "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
-    "R / T: girar o barco  ·  Z / X: tamanho do barco",
+    "E perto do barco: embarcar  ·  no barco, WASD pilota e E desembarca (perto do píer ou da areia)",
+    "R / T: girar o barco  ·  Z / X: tamanho do barco (com a Lia fora dele)",
     "I: mochila (inventário)  ·  Tab: quadro da missão  ·  M: música",
     "F12: captura de tela",
     "F2: teste de transição"
@@ -89,7 +90,9 @@ Game::Game()
       m_transitionTimer(0.0f),
       m_toastTimer(0.0f),
       m_inventorySelection(0),
-      m_answerValue(0)
+      m_answerValue(0),
+      m_inBoat(false),
+      m_boatSpeed(0.0f)
 {
 }
 
@@ -181,6 +184,10 @@ bool Game::init()
         m_inventory.add("coco", 1);
         changeState(GameState::Playing);
     }
+    if (testState != nullptr && std::string(testState) == "barco") {
+        changeState(GameState::Playing);
+        boardBoat();
+    }
     if (testState != nullptr && std::string(testState) == "quadro") {
         m_quests.start("cocos_graca");
         m_inventory.add("coco", 2);
@@ -270,6 +277,10 @@ void Game::handleInteraction()
     int target = -1;
 
     if (Input::wasKeyPressed(GLFW_KEY_E)) {
+        if (m_inBoat && (focused < 0 || m_maceio.isBoat(focused))) {
+            tryDisembark();
+            return;
+        }
         target = focused;
     }
 
@@ -296,7 +307,17 @@ void Game::handleInteraction()
         return;
     }
 
+    if (m_inBoat && m_maceio.isBoat(target)) {
+        return;
+    }
+
     Interaction result = m_scene->interact(target);
+
+    // Barco: a Lia embarca
+    if (result.boat) {
+        boardBoat();
+        return;
+    }
 
     // Item: pega, toca o som e mostra um aviso rapido
     if (!result.itemId.empty()) {
@@ -344,6 +365,87 @@ void Game::handleBoatControls(float deltaTime)
     if (Input::isKeyDown(GLFW_KEY_X) && boat.scaleX < 3.0f) {
         boat.scale(scaleFactor, scaleFactor, scaleFactor);
     }
+}
+
+// ------------------------------------------------------------------ barco
+
+void Game::boardBoat()
+{
+    m_inBoat = true;
+    m_boatSpeed = 0.0f;
+    m_maceio.setBoatOccupied(true);
+    m_player.stopWalking();
+    m_audio.play(m_stepsWood[0], 0.4f, false);
+    showToast("A Lia entrou no Mundaú! WASD: pilotar  ·  E: desembarcar perto do píer ou da areia");
+}
+
+void Game::tryDisembark()
+{
+    Vec3 landing;
+    if (!m_maceio.findLanding(m_maceio.getBoat().getPosition(), landing)) {
+        showToast("Chegue perto do píer ou da areia para desembarcar.");
+        return;
+    }
+
+    m_inBoat = false;
+    m_boatSpeed = 0.0f;
+    m_maceio.setBoatOccupied(false);
+    m_player.placeAt(landing, m_player.getYaw());
+    m_audio.play(m_stepsWood[1], 0.4f, false);
+}
+
+void Game::handleSailing(float deltaTime)
+{
+    Transform& boat = m_maceio.getBoat().getTransform();
+
+    if (deltaTime > 0.0f) {
+        // W/S aceleram para frente/tras, A/D viram (mais devagar parado)
+        float throttle = 0.0f;
+        float turn = 0.0f;
+        if (Input::isKeyDown(GLFW_KEY_W) || Input::isKeyDown(GLFW_KEY_UP))    throttle += 1.0f;
+        if (Input::isKeyDown(GLFW_KEY_S) || Input::isKeyDown(GLFW_KEY_DOWN))  throttle -= 0.5f;
+        if (Input::isKeyDown(GLFW_KEY_A) || Input::isKeyDown(GLFW_KEY_LEFT))  turn += 1.0f;
+        if (Input::isKeyDown(GLFW_KEY_D) || Input::isKeyDown(GLFW_KEY_RIGHT)) turn -= 1.0f;
+
+        const float maxSpeed = 5.0f;
+        m_boatSpeed += throttle * 4.0f * deltaTime;
+        m_boatSpeed -= m_boatSpeed * 0.9f * deltaTime; // arrasto da agua
+        m_boatSpeed = clamp(m_boatSpeed, -maxSpeed * 0.5f, maxSpeed);
+
+        float turnRate = 55.0f * (0.35f + 0.65f * std::fmin(std::fabs(m_boatSpeed) / maxSpeed, 1.0f));
+        boat.rotationY += turn * turnRate * deltaTime;
+
+        // Anda so se o centro e as duas pontas continuarem em agua navegavel
+        Vec3 forward = forwardFromYaw(boat.rotationY);
+        float nextX = boat.positionX + forward.x * m_boatSpeed * deltaTime;
+        float nextZ = boat.positionZ + forward.z * m_boatSpeed * deltaTime;
+        float half = 1.9f * boat.scaleX * 0.5f;
+
+        bool free = m_maceio.isNavigable(nextX, nextZ) &&
+                    m_maceio.isNavigable(nextX + forward.x * half, nextZ + forward.z * half) &&
+                    m_maceio.isNavigable(nextX - forward.x * half, nextZ - forward.z * half);
+
+        if (free) {
+            boat.positionX = nextX;
+            boat.positionZ = nextZ;
+        }
+        else {
+            m_boatSpeed = 0.0f;
+        }
+
+        // A camera vai virando para ficar atras do barco enquanto ele anda
+        if (std::fabs(m_boatSpeed) > 0.3f) {
+            float follow = std::fmin(1.0f, deltaTime * 1.2f);
+            m_camera.orbit(angleDifference(m_camera.getYaw(), boat.rotationY) * follow, 0.0f);
+        }
+    }
+
+    // A Lia vai sentada no barco
+    float matrix[16];
+    m_maceio.getBoat().getMatrix(matrix);
+    Vec3 seat = transformPoint(matrix, { 0.0f, -0.12f, 0.25f });
+    m_player.placeAt(seat, boat.rotationY);
+    m_player.stopWalking();
 }
 
 // ------------------------------------------------------------------ estados
@@ -722,8 +824,13 @@ void Game::update(float deltaTime)
 
     switch (m_state) {
     case GameState::Playing:
-        handleBoatControls(deltaTime);
-        handleMovement(deltaTime, true);
+        if (m_inBoat) {
+            handleSailing(deltaTime);
+        }
+        else {
+            handleBoatControls(deltaTime);
+            handleMovement(deltaTime, true);
+        }
         updateWorld(deltaTime);
         handleInteraction();
 
@@ -746,7 +853,12 @@ void Game::update(float deltaTime)
 
     case GameState::Dialogue:
         // A Lia fica parada, mas a agua, os coqueiros e o barco continuam animando
-        handleMovement(deltaTime, false);
+        if (m_inBoat) {
+            handleSailing(0.0f);
+        }
+        else {
+            handleMovement(deltaTime, false);
+        }
         updateWorld(deltaTime);
         m_dialogue.update(deltaTime);
 
@@ -761,7 +873,12 @@ void Game::update(float deltaTime)
         break;
 
     case GameState::Challenge:
-        handleMovement(deltaTime, false);
+        if (m_inBoat) {
+            handleSailing(0.0f);
+        }
+        else {
+            handleMovement(deltaTime, false);
+        }
         updateWorld(deltaTime);
 
         if (closePressed) {
@@ -770,7 +887,12 @@ void Game::update(float deltaTime)
         break;
 
     case GameState::Transition:
-        handleMovement(deltaTime, false);
+        if (m_inBoat) {
+            handleSailing(0.0f);
+        }
+        else {
+            handleMovement(deltaTime, false);
+        }
         updateWorld(deltaTime);
 
         m_transitionTimer += deltaTime;

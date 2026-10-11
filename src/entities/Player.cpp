@@ -36,6 +36,12 @@ void Player::placeAt(const Vec3& position, float yawDegrees)
     m_transform.rotationY = yawDegrees;
 }
 
+void Player::stopWalking()
+{
+    m_walkAmount = 0.0f;
+    m_stepped = false;
+}
+
 void Player::update(float deltaTime, const Vec3& moveDirection, bool running, const Scene& scene)
 {
     m_stepped = false;

@@ -446,6 +446,9 @@ void MaceioScene::dropItem(const std::string& itemId, const Vec3& position, floa
 
 bool MaceioScene::isAvailable(const Interactable& item) const
 {
+    if (item.kind == Kind::Boat) {
+        return !m_boatOccupied;
+    }
     return item.kind != Kind::Item || !m_items[item.index].isCollected();
 }
 
@@ -695,7 +698,7 @@ void MaceioScene::setFocus(int id)
 
 Interaction MaceioScene::interact(int id)
 {
-    Interaction result = { "", InteractionSound::Chime, "", 0 };
+    Interaction result = { "", InteractionSound::Chime, "", 0, false };
 
     if (id < 0 || id >= static_cast<int>(m_interactables.size())) {
         return result;
@@ -706,6 +709,10 @@ Interaction MaceioScene::interact(int id)
 
     if (item.kind == Kind::Palm) {
         m_palms[item.index].shake = 1.0f;
+    }
+
+    if (item.kind == Kind::Boat) {
+        result.boat = true;
     }
 
     if (item.kind == Kind::Item) {
@@ -726,6 +733,60 @@ Interaction MaceioScene::interact(int id)
 Boat& MaceioScene::getBoat()
 {
     return m_boat;
+}
+
+bool MaceioScene::isNavigable(float x, float z) const
+{
+    // Limite da area de Maceio (o barco nao sai do mapa)
+    if (x < -65.0f || x > 65.0f || z < -55.0f || z > -2.0f) {
+        return false;
+    }
+
+    // Longe do pier (com folga para o casco)
+    if (std::fabs(x - PIER_X) < PIER_WIDTH * 0.5f + 0.6f && z <= PIER_Z + 0.6f && z >= PIER_Z - PIER_LENGTH - 0.6f) {
+        return false;
+    }
+
+    // Agua funda o bastante para o casco nao encalhar
+    return terrainHeight(x, z) < -0.45f;
+}
+
+bool MaceioScene::findLanding(const Vec3& boatPosition, Vec3& landing) const
+{
+    // Procura, em volta do barco, o ponto mais proximo onde a Lia pode pisar
+    float best = 1e9f;
+    bool found = false;
+
+    for (int ring = 0; ring < 6; ++ring) {
+        float distance = 1.0f + ring * 0.45f;
+        for (int i = 0; i < 16; ++i) {
+            float angle = 2.0f * PI * i / 16.0f;
+            float x = boatPosition.x + std::cos(angle) * distance;
+            float z = boatPosition.z + std::sin(angle) * distance;
+
+            if (isWalkable(x, z) && distance < best) {
+                best = distance;
+                landing = { x, groundHeight(x, z), z };
+                found = true;
+            }
+        }
+        if (found) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void MaceioScene::setBoatOccupied(bool occupied)
+{
+    m_boatOccupied = occupied;
+}
+
+bool MaceioScene::isBoat(int interactableId) const
+{
+    return interactableId >= 0 && interactableId < static_cast<int>(m_interactables.size()) &&
+           m_interactables[interactableId].kind == Kind::Boat;
 }
 
 const Light& MaceioScene::getLight() const

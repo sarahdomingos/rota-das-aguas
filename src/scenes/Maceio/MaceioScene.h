@@ -46,6 +46,16 @@ public:
 
     Boat& getBoat();
 
+    // Barco pilotado pela Lia: so anda em agua funda, longe do pier e dentro da
+    // area de Maceio (paredes invisiveis).
+    bool isNavigable(float x, float z) const;
+    // Ponto de desembarque (pier ou areia) perto do barco; false se nao houver.
+    bool findLanding(const Vec3& boatPosition, Vec3& landing) const;
+    bool isBoat(int interactableId) const;
+
+    // Com a Lia dentro, o barco deixa de ser objeto em foco (assim ela pega itens do mar)
+    void setBoatOccupied(bool occupied);
+
 private:
     struct Circle { float x, z, radius; };
     struct Box { float minX, minZ, maxX, maxZ; };
@@ -119,6 +129,7 @@ private:
     std::vector<Box> m_boxes;
     std::vector<Interactable> m_interactables;
     int m_focus;
+    bool m_boatOccupied = false;
     float m_time;
 
     float terrainHeight(float x, float z) const;

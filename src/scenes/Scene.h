@@ -32,6 +32,7 @@ struct Interaction {
     InteractionSound sound;
     std::string itemId;         // item pego (ou vazio)
     int itemQuantity;
+    bool boat;                  // interagiu com o barco (embarcar)
 };
 
 class Scene {

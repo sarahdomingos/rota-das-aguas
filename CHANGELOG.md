@@ -40,6 +40,13 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
   - a missão aceita qualquer item da categoria "lixo".
 - **Modelos de lixo** gerados por código: garrafa, lata e sacola (`ItemModels`).
 - **Itens no mar boiam** na superfície e podem ser pegos de um pouco mais longe (do barco).
+- **A Lia pilota o Mundaú:**
+  - E perto do barco faz ela embarcar;
+  - no barco, W e S aceleram para frente e para trás, A e D viram, e a câmera vai se ajeitando atrás do barco;
+  - E desembarca, mas só perto do píer ou da areia; longe disso aparece o aviso para chegar mais perto;
+  - a Lia vai sentada no barco e pode pegar o lixo que boia no mar.
+- **Área limitada:** paredes invisíveis mantêm o barco em volta de Maceió. Ele também não passa pelo píer nem encalha na areia (`MaceioScene::isNavigable`, `findLanding`). Não há viagem entre cidades.
+- Teste: `ROTA_TEST_STATE=barco` abre o jogo com a Lia no barco.
 
 ### Alterado
 - **Conchas viraram decoração** na areia (não brilham e não podem ser pegas).
@@ -55,6 +62,10 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
   - o quadro mostra os 20 cocos em 4 fileiras de 5;
   - há 8 cocos pela orla, mais do que o necessário, para a criança ter que contar a quantidade exata.
 - Diálogos das duas missões reescritos (pedido, erro e conclusão), sem revelar o resultado.
+- **Interação com o barco:** agora embarca (antes abria o diálogo do barco).
+- Com a Lia dentro, o barco deixa de ficar em foco, para não atrapalhar a coleta dos itens do mar.
+- Os controles de girar e mudar o tamanho do barco (R/T e Z/X) só funcionam com a Lia fora dele.
+- A tela de pausa explica os controles do barco.
 
 ### Removido
 - O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).

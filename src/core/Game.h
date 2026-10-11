@@ -97,6 +97,10 @@ private:
     std::string m_answerQuest;
     int m_answerValue;
 
+    // Barco pilotado pela Lia
+    bool m_inBoat;
+    float m_boatSpeed;
+
     void changeState(GameState next);
     void enterState(GameState state);
     void exitState(GameState state);
@@ -124,6 +128,9 @@ private:
     void handleMovement(float deltaTime, bool allowMove);
     void updateWorld(float deltaTime);
     void handleBoatControls(float deltaTime);
+    void boardBoat();
+    void tryDisembark();
+    void handleSailing(float deltaTime);
     void render();
     void renderInterface();
     void renderHud(float ui, int width);
