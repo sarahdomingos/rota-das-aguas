@@ -26,22 +26,45 @@
 # estiver certa E a mochila tiver exatamente essa quantidade do item.
 
 [cocos_graca]
-titulo: Cocos para a tapioca
+titulo: Cocos para a tapioca da festa
 quem: vendedora
 nome: Dona Graça
 pronome: a
-tarefa: conseguir os cocos que faltam para a tapioca
+tarefa: conseguir os cocos que faltam para a tapioca da festa
 item: coco
-dado: A receita pede 5 cocos.
-dado: A Dona Graça já tem 2 cocos.
-passo: Veja quantos cocos a receita pede.
-passo: Veja quantos cocos a Dona Graça já tem.
-passo: Descubra quantos faltam e pegue exatamente essa quantidade.
+dado: A Dona Graça tem 20 cocos.
+dado: Para a festa, ela precisa de mais 25% da quantidade que já tem.
+dado: 25% quer dizer 25 em cada 100.
+passo: Escreva 25% como fração: 25/100. Simplifique essa fração.
+passo: Use a fração simplificada para separar os 20 cocos em partes iguais (veja as fileiras ao lado).
+passo: Descubra quantos cocos tem em uma dessas partes.
+passo: Pegue exatamente essa quantidade de cocos. Se pegar a mais, solte na mochila (I).
 passo: Fale com a Dona Graça e diga o resultado da conta.
-ilustracao: A receita pede | coco | 5 | 5
-ilustracao: A Dona Graça já tem | coco | 2 | 5
+ilustracao: Cocos da Dona Graça | coco | 20 | 5
 inicial: sim
 dialogo_inicio: graca_pedido
 dialogo_erro: graca_erro
 dialogo_conclusao: graca_conclusao
 desafio: cocos_graca
+
+[lixo_bene]
+titulo: Praia limpa para a Festa das Águas
+quem: pescador
+nome: Seu Bené
+pronome: o
+tarefa: recolher o lixo que ainda falta na praia
+item: lixo
+dado: Hoje cedo, o Seu Bené recolheu 18 lixos da praia.
+dado: Esses 18 lixos são 3/4 (três quartos) de todo o lixo que havia.
+dado: O resto do lixo está na areia, no píer e boiando no mar.
+passo: Se 18 lixos são 3 partes de 4, descubra quanto vale 1 parte.
+passo: Descubra quantos lixos havia ao todo (as 4 partes).
+passo: Tire do total o que o Seu Bené já recolheu.
+passo: Recolha exatamente essa quantidade. Para pegar o lixo do mar, use o barco Mundaú (E perto do barco).
+passo: Fale com o Seu Bené e diga o resultado da conta.
+ilustracao: O que o Seu Bené já recolheu | garrafa | 18 | 6
+inicial: sim
+dialogo_inicio: bene_pedido
+dialogo_erro: bene_erro
+dialogo_conclusao: bene_conclusao
+desafio: lixo_bene

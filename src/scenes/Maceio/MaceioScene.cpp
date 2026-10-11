@@ -392,8 +392,16 @@ void MaceioScene::addItem(const std::string& itemId, int quantity, float x, floa
 {
     int index = static_cast<int>(m_items.size());
     float y = groundHeight(x, z);
+    float range = 1.8f;
+
+    // No mar o item boia (so da para pegar de barco, de um pouco mais longe)
+    if (y < -0.05f) {
+        y = -0.12f;
+        range = 2.6f;
+    }
+
     m_items.push_back(Item(itemId, quantity, itemMesh(itemId), x, y, z, index * 1.3f));
-    m_interactables.push_back({ Kind::Item, index, { x, y + 0.3f, z }, 1.8f, 0.6f, "", InteractionSound::Pickup, 0.0f });
+    m_interactables.push_back({ Kind::Item, index, { x, y + 0.3f, z }, range, 0.6f, "", InteractionSound::Pickup, 0.0f });
 }
 
 void MaceioScene::buildItems()

@@ -33,6 +33,13 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
 - `Renderer::beginIcons`, `drawIcon` e `endIcons` desenham os modelos 3D dos itens dentro da interface, com luz própria.
 - As missões podem pedir um item ou uma categoria inteira (ex.: "lixo").
 - Testes: `ROTA_TEST_STATE=quadro` e `ROTA_TEST_STATE=entrega`.
+- **Missão "Praia limpa para a Festa das Águas"** (Seu Bené, nível 4º a 6º ano):
+  - ele já recolheu 18 lixos, que são 3/4 do total;
+  - a Lia precisa recolher o que falta: `18 ÷ 3 × 4 - 18 = 6`;
+  - há 8 lixos (garrafas, latas e sacolas) na areia, no píer e boiando no mar, e pelo menos dois precisam ser pegos de barco;
+  - a missão aceita qualquer item da categoria "lixo".
+- **Modelos de lixo** gerados por código: garrafa, lata e sacola (`ItemModels`).
+- **Itens no mar boiam** na superfície e podem ser pegos de um pouco mais longe (do barco).
 
 ### Alterado
 - **Conchas viraram decoração** na areia (não brilham e não podem ser pegas).
@@ -43,6 +50,11 @@ Feito na branch `ajustes-maceio`, criada a partir da `development`.
 - O desafio (conta montada) aparece depois da fala de conclusão.
 - O HUD da missão mostra a tarefa e a dica "Tab: quadro da missão".
 - As dicas de controle e a tela de pausa incluem Tab.
+- **Missão da Dona Graça mais difícil:**
+  - ela tem 20 cocos e precisa de mais 25% disso: `20 × 25 ÷ 100 = 5`;
+  - o quadro mostra os 20 cocos em 4 fileiras de 5;
+  - há 8 cocos pela orla, mais do que o necessário, para a criança ter que contar a quantidade exata.
+- Diálogos das duas missões reescritos (pedido, erro e conclusão), sem revelar o resultado.
 
 ### Removido
 - O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).

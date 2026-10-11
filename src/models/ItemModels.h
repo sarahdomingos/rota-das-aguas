@@ -10,7 +10,7 @@
 
 namespace ItemModels {
 
-// Modelos: "coco", "concha" (outros nomes viram uma caixinha).
+// Modelos: "coco", "concha", "garrafa", "lata", "sacola" (outros nomes viram uma caixinha).
 Mesh build(const std::string& model, const Vec3& color);
 
 }

@@ -14,7 +14,13 @@
 # - Divisões precisam dar resultado inteiro.
 
 [cocos_graca]
-conta: 5 - 2
-dificuldade: 1
-contexto: A receita pede 5 cocos e a Dona Graça já tinha 2. Faltavam 3!
-acao: entregar à Dona Graça os cocos que faltam
+conta: 20 * 25 / 100
+dificuldade: 2
+contexto: 25% de 20 é o mesmo que 1/4 de 20: são 5 cocos. Agora a Dona Graça tem 25 cocos para a tapioca da festa!
+acao: entregar à Dona Graça 25% dos 20 cocos que ela tem
+
+[lixo_bene]
+conta: 18 / 3 * 4 - 18
+dificuldade: 3
+contexto: Se 18 é 3/4, então 1/4 é 6 e o lixo todo era 24. Faltavam 24 - 18 = 6 lixos. A praia está limpa para a Festa das Águas!
+acao: recolher o lixo que faltava e entregar ao Seu Bené
