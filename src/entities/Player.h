@@ -17,6 +17,9 @@ public:
     void build();
     void placeAt(const Vec3& position, float yawDegrees);
 
+    // Para a animacao de caminhada (ex.: quando a Lia esta sentada no barco)
+    void stopWalking();
+
     // moveDirection: direcao no plano XZ (tamanho 0 = parada).
     void update(float deltaTime, const Vec3& moveDirection, bool running, const Scene& scene);
     void draw(Renderer& renderer, float time) const override;

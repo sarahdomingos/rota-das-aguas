@@ -18,6 +18,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 // Estados do jogo. So JOGANDO aceita movimento e interacao; DIALOGO e DESAFIO
 // congelam a Lia mas a cena continua animando; PAUSA congela o mundo inteiro;
@@ -28,7 +29,10 @@ enum class GameState {
     Challenge,
     Paused,
     Transition,
-    Inventory   // tela da mochila: o mundo para, como na pausa
+    Inventory,  // tela da mochila: o mundo para, como na pausa
+    Board,      // quadro da missao (dados do problema e passo a passo)
+    Answer,     // entrega: a Lia escolhe o resultado da conta
+    Report      // relatorio de tentativas por missao (fim do capitulo ou pela pausa)
 };
 
 class Game {
@@ -82,12 +86,43 @@ private:
     MathChallengeBook m_challenges;
     MathChallenge m_challenge;
 
+    // Tela da mochila: item selecionado e area de cada linha (para o clique)
+    struct InventoryRow { float x0, y0, x1, y1; std::string itemId; };
+    int m_inventorySelection;
+    std::vector<InventoryRow> m_inventoryRows;
+
+    // Missoes: quadro, entrega com resposta e desafio mostrado depois da conclusao
+    std::string m_pendingQuestStart;
+    std::string m_pendingChallengeQuest;
+    std::string m_boardQuest;
+    std::string m_answerQuest;
+    int m_answerValue;
+
+    // Barco pilotado pela Lia
+    bool m_reportShown;
+    GameState m_reportReturn;
+
+    bool m_inBoat;
+    float m_boatSpeed;
+
     void changeState(GameState next);
     void enterState(GameState state);
     void exitState(GameState state);
     void openDialogue(const std::string& id);
     void onItemCollected(const std::string& itemId, int quantity);
     void showToast(const std::string& text);
+    void updateInventoryScreen();
+    void dropFromInventory(const std::string& itemId);
+
+    int countFor(const std::string& itemKey) const;
+    bool removeFor(const std::string& itemKey, int quantity);
+    int answerFor(const QuestDefinition& quest);
+    std::string itemNameFor(const std::string& itemKey) const;
+    void openBoard(const std::string& questId);
+    void confirmAnswer();
+    void renderBoard(float ui, int width, int height);
+    void renderAnswer(float ui, int width, int height);
+    void renderReport(float ui, int width, int height);
     void onDialogueFinished();
     void startChallenge(const std::string& id, const std::map<std::string, int>& variables);
 
@@ -97,7 +132,9 @@ private:
     void handleInteraction();
     void handleMovement(float deltaTime, bool allowMove);
     void updateWorld(float deltaTime);
-    void handleBoatControls(float deltaTime);
+    void boardBoat();
+    void tryDisembark();
+    void handleSailing(float deltaTime);
     void render();
     void renderInterface();
     void renderHud(float ui, int width);

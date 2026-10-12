@@ -2,6 +2,83 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-10-11 — Ajustes de Maceió (missões mais difíceis, barco, quadro da missão e relatório)
+
+**Pedido:** ajustes decididos com a equipe:
+- missões de nível 4º a 6º ano;
+- missão de catar lixo com o Seu Bené;
+- a Lia pilota o Mundaú numa área limitada;
+- sem laço de fita, e conchas só como decoração;
+- HUD sem o total da missão e itens que podem ser soltos da mochila;
+- quadro da missão;
+- entrega com resposta da conta;
+- relatório de tentativas.
+
+Feito na branch `ajustes-maceio`, criada a partir da `development`.
+
+### Adicionado
+- **Soltar itens:** na mochila (I), as setas escolhem o item, e G (ou um clique na linha) solta 1 unidade. O item cai no chão, um pouco à frente da Lia, e pode ser pego de novo. A mochila não tem limite.
+- **Decoração** em `assets/itens/maceio.txt`: linhas `decoracao | id | x | z` enfeitam a cena sem brilho, sem interação e sem coleta.
+- **Quadro da missão** (estado `GameState::Board`), seguindo o esboço da equipe:
+  - abre sozinho no fim da fala em que o NPC pede ajuda e reabre com Tab;
+  - no topo, "MISSÃO: <título>" e "<NPC> precisa da sua ajuda! Ajude-a a <tarefa>";
+  - à esquerda, os dados do problema e o passo a passo, que guia sem nunca mostrar o resultado;
+  - à direita, os modelos 3D dos itens girando, agrupados em fileiras, e a linha "Na mochila: X";
+  - todo o conteúdo vem do arquivo de missões.
+- **Entrega com resposta** (estado `GameState::Answer`):
+  - ao falar com o NPC de uma missão em andamento, a Lia escolhe o resultado da conta com as setas (começa em 0) e confirma com Enter ou E; Esc volta sem contar tentativa;
+  - a missão só é concluída se a resposta estiver certa e a mochila tiver exatamente essa quantidade;
+  - se errar, o NPC diz só "Não está certo, confere a conta.", sem dica, e a Lia precisa falar com ele de novo;
+  - as tentativas são ilimitadas e contadas por missão.
+- `Renderer::beginIcons`, `drawIcon` e `endIcons` desenham os modelos 3D dos itens dentro da interface, com luz própria.
+- As missões podem pedir um item ou uma categoria inteira (ex.: "lixo").
+- Testes: `ROTA_TEST_STATE=quadro` e `ROTA_TEST_STATE=entrega`.
+- **Missão "Praia limpa para a Festa das Águas"** (Seu Bené, nível 4º a 6º ano):
+  - ele já recolheu 18 lixos, que são 3/4 do total;
+  - a Lia precisa recolher o que falta: `18 ÷ 3 × 4 - 18 = 6`;
+  - há 8 lixos (garrafas, latas e sacolas) na areia, no píer e boiando no mar, e pelo menos dois precisam ser pegos de barco;
+  - a missão aceita qualquer item da categoria "lixo".
+- **Modelos de lixo** gerados por código: garrafa, lata e sacola (`ItemModels`).
+- **Itens no mar boiam** na superfície e podem ser pegos de um pouco mais longe (do barco).
+- **A Lia pilota o Mundaú:**
+  - E perto do barco faz ela embarcar;
+  - no barco, W e S aceleram para frente e para trás, A e D viram, e a câmera vai se ajeitando atrás do barco;
+  - E desembarca, mas só perto do píer ou da areia; longe disso aparece o aviso para chegar mais perto;
+  - a Lia vai sentada no barco e pode pegar o lixo que boia no mar.
+- **Área limitada:** paredes invisíveis mantêm o barco em volta de Maceió. Ele também não passa pelo píer nem encalha na areia (`MaceioScene::isNavigable`, `findLanding`). Não há viagem entre cidades.
+- Teste: `ROTA_TEST_STATE=barco` abre o jogo com a Lia no barco.
+- **Relatório de tentativas** (estado `GameState::Report`):
+  - mostra cada missão com o número de tentativas de entrega, por exemplo "Dona Graça: 1 tentativa" e "Seu Bené: 4 tentativas", junto com o título e a situação (concluída, em andamento ou não iniciada);
+  - abre sozinho quando a última missão de Maceió termina, depois da conta;
+  - também abre pela pausa, com R.
+- Teste: `ROTA_TEST_STATE=relatorio`.
+
+### Alterado
+- **Conchas viraram decoração** na areia (não brilham e não podem ser pegas).
+- **HUD da missão:** mostra só quantos itens a Lia carrega (ex.: "Coco: 1"), sem o total nem quanto falta.
+- **Formato de `assets/missoes/maceio.txt`:**
+  - campos novos: `nome`, `pronome`, `tarefa`, `item`, `dado`, `passo`, `ilustracao` e `dialogo_erro`;
+  - o resultado do `desafio` é a quantidade exata a entregar.
+- O desafio (conta montada) aparece depois da fala de conclusão.
+- O HUD da missão mostra a tarefa e a dica "Tab: quadro da missão".
+- As dicas de controle e a tela de pausa incluem Tab.
+- **Missão da Dona Graça mais difícil:**
+  - ela tem 20 cocos e precisa de mais 25% disso: `20 × 25 ÷ 100 = 5`;
+  - o quadro mostra os 20 cocos em 4 fileiras de 5;
+  - há 8 cocos pela orla, mais do que o necessário, para a criança ter que contar a quantidade exata.
+- Diálogos das duas missões reescritos (pedido, erro e conclusão), sem revelar o resultado.
+- **Interação com o barco:** agora embarca (antes abria o diálogo do barco).
+- Com a Lia dentro, o barco deixa de ficar em foco, para não atrapalhar a coleta dos itens do mar.
+- A tela de pausa explica os controles do barco.
+- A tela de pausa mostra "R: relatório".
+- No quadro da missão, os modelos 3D dos itens ficaram maiores, os dados usam "-" (o "•" não existe na fonte) e o texto do passo a passo ficou um pouco menor para caber.
+- `README.md`: controles novos (barco, Tab, entrega, soltar itens e relatório) e formatos atualizados dos arquivos de itens, missões e desafios.
+
+### Removido
+- O laço de fita: o item, a posição no mapa e o modelo (`ItemModels`).
+- Os campos `objetivo`, `condicao` e `dialogo_andamento` das missões, e as variáveis `{entregue}` e `{tinha}` dos desafios (agora a conta é conhecida antes da entrega).
+- Os controles de teste do barco: R/T (girar) e Z/X (aumentar e diminuir o tamanho), com o texto de ajuda da pausa e as menções no README. O R da pausa continua abrindo o relatório, e os controles de pilotar o barco continuam iguais.
+
 ## 2026-10-07 — Etapa A8: desafios matemáticos
 
 **Pedido:** etapa A8 do roteiro: um motor genérico de desafios (`MathChallenge`) com operação, operandos, resultado, dificuldade, contexto e ação esperada. Ao concluir uma missão que tem desafio, a conta aparece montada na tela a partir do que o jogador fez, com som de sucesso. Por enquanto é só a estrutura, com suporte às 4 operações e a contas combinadas. Demonstração: Dona Graça tem 2 cocos, a Lia entrega 3 e aparece 2 + 3 = 5. Feito na branch `desafios-matematicos`, criada a partir da `missoes`.

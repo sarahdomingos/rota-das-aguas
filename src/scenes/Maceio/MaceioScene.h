@@ -41,8 +41,20 @@ public:
     void setFocus(int id) override;
     Interaction interact(int id) override;
     const ItemCatalog& getItemCatalog() const override;
+    void dropItem(const std::string& itemId, const Vec3& position, float yawDegrees) override;
+    const Mesh* getItemMesh(const std::string& itemId) override;
 
     Boat& getBoat();
+
+    // Barco pilotado pela Lia: so anda em agua funda, longe do pier e dentro da
+    // area de Maceio (paredes invisiveis).
+    bool isNavigable(float x, float z) const;
+    // Ponto de desembarque (pier ou areia) perto do barco; false se nao houver.
+    bool findLanding(const Vec3& boatPosition, Vec3& landing) const;
+    bool isBoat(int interactableId) const;
+
+    // Com a Lia dentro, o barco deixa de ser objeto em foco (assim ela pega itens do mar)
+    void setBoatOccupied(bool occupied);
 
 private:
     struct Circle { float x, z, radius; };
@@ -111,11 +123,13 @@ private:
     ItemCatalog m_itemCatalog;
     std::map<std::string, Mesh> m_itemMeshes;
     std::vector<Item> m_items;
+    Mesh m_decorations;
 
     std::vector<Circle> m_circles;
     std::vector<Box> m_boxes;
     std::vector<Interactable> m_interactables;
     int m_focus;
+    bool m_boatOccupied = false;
     float m_time;
 
     float terrainHeight(float x, float z) const;
@@ -130,6 +144,8 @@ private:
     void buildSky();
     void buildNpcs();
     void buildItems();
+    const Mesh* itemMesh(const std::string& itemId);
+    void addItem(const std::string& itemId, int quantity, float x, float z);
     bool isAvailable(const Interactable& item) const;
     void drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity);
 };

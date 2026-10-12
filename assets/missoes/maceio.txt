@@ -5,27 +5,66 @@
 # - Depois, uma linha por campo, no formato   campo: valor
 #
 # Campos:
-#   titulo:            nome curto da missão (aparece no HUD)
-#   objetivo:          o que a Lia precisa fazer
-#   quem:              id de diálogo do NPC/objeto que pede e recebe (ex.: vendedora, pescador, barco)
-#   condicao:          entregar <item> <quantidade>   (tira os itens da mochila ao concluir)
-#                      ter <item> <quantidade>        (só precisa ter, não tira)
+#   titulo:            nome curto da missão (aparece no quadro e no HUD)
+#   quem:              id de diálogo do NPC que pede e recebe (ex.: vendedora, pescador)
+#   nome:              nome do NPC na tela (ex.: Dona Graça)
+#   pronome:           a ou o  (para "Ajude-a" / "Ajude-o")
+#   tarefa:            o que a Lia deve fazer, completando "Ajude-a a ..."
+#   item:              id do item (assets/itens) ou categoria que será entregue
+#   dado:              um dado do problema (pode repetir a linha; aparece no quadro)
+#   passo:             um passo que guia a criança SEM dar o resultado (pode repetir)
+#   ilustracao:        rótulo | item | quantidade | itens por fileira  (modelos 3D no quadro; pode repetir)
 #   inicial:           sim  se a missão já está liberada no começo do capítulo
-#   dialogo_inicio:    diálogo ao pedir a missão (arquivo assets/dialogos)
-#   dialogo_andamento: diálogo enquanto a condição não foi cumprida
-#   dialogo_conclusao: diálogo ao entregar/concluir
-#   desafio:           id do desafio de matemática mostrado ao concluir (assets/desafios), opcional
+#   dialogo_inicio:    diálogo do pedido (o quadro abre sozinho no fim dele)
+#   dialogo_erro:      diálogo quando a resposta ou a quantidade estão erradas
+#   dialogo_conclusao: diálogo quando a entrega está certa
+#   desafio:           id do desafio (assets/desafios). O RESULTADO da conta é a
+#                      quantidade exata que a Lia precisa entregar.
 #   proxima:           id da missão liberada depois desta, opcional
 #
-# Os ids de item vêm de assets/itens; os de diálogo, de assets/dialogos.
+# Na entrega, a Lia escolhe o resultado da conta; só conclui se a resposta
+# estiver certa E a mochila tiver exatamente essa quantidade do item.
 
 [cocos_graca]
-titulo: Cocos para a tapioca
-objetivo: Encontre 3 cocos pela orla e leve para a Dona Graça.
+titulo: Cocos para a tapioca da festa
 quem: vendedora
-condicao: entregar coco 3
+nome: Dona Graça
+pronome: a
+tarefa: conseguir os cocos que faltam para a tapioca da festa
+item: coco
+dado: A Dona Graça tem 20 cocos.
+dado: Para a festa, ela precisa de mais 25% da quantidade que já tem.
+dado: 25% quer dizer 25 em cada 100.
+passo: Escreva 25% como fração: 25/100. Simplifique essa fração.
+passo: Use a fração simplificada para separar os 20 cocos em partes iguais (veja as fileiras ao lado).
+passo: Descubra quantos cocos tem em uma dessas partes.
+passo: Pegue exatamente essa quantidade de cocos. Se pegar a mais, solte na mochila (I).
+passo: Fale com a Dona Graça e diga o resultado da conta.
+ilustracao: Cocos da Dona Graça | coco | 20 | 5
 inicial: sim
 dialogo_inicio: graca_pedido
-dialogo_andamento: graca_andamento
+dialogo_erro: graca_erro
 dialogo_conclusao: graca_conclusao
 desafio: cocos_graca
+
+[lixo_bene]
+titulo: Praia limpa para a Festa das Águas
+quem: pescador
+nome: Seu Bené
+pronome: o
+tarefa: recolher o lixo que ainda falta na praia
+item: lixo
+dado: Hoje cedo, o Seu Bené recolheu 18 lixos da praia.
+dado: Esses 18 lixos são 3/4 (três quartos) de todo o lixo que havia.
+dado: O resto do lixo está na areia, no píer e boiando no mar.
+passo: Se 18 lixos são 3 partes de 4, descubra quanto vale 1 parte.
+passo: Descubra quantos lixos havia ao todo (as 4 partes).
+passo: Tire do total o que o Seu Bené já recolheu.
+passo: Recolha exatamente essa quantidade. Para pegar o lixo do mar, use o barco Mundaú (E perto do barco).
+passo: Fale com o Seu Bené e diga o resultado da conta.
+ilustracao: O que o Seu Bené já recolheu | garrafa | 18 | 6
+inicial: sim
+dialogo_inicio: bene_pedido
+dialogo_erro: bene_erro
+dialogo_conclusao: bene_conclusao
+desafio: lixo_bene

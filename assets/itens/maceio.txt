@@ -4,23 +4,46 @@
 #
 # 1) Tipos de item (o que cada item é):
 #    tipo | id | nome na tela | categoria | modelo | cor (r g b, de 0 a 1)
-#    Modelos disponíveis: coco, concha, fita (outro nome vira uma caixinha).
+#    Modelos disponíveis: coco, concha, garrafa, lata, sacola (outro nome vira uma caixinha).
+#    A categoria também serve para as missões (ex.: a missão do lixo aceita qualquer item da categoria "lixo").
 #
-# 2) Itens no mundo (onde aparecem):
+# 2) Itens no mundo, que a Lia pode pegar:
 #    item | id do tipo | x | z | quantidade (opcional, padrão 1)
+#
+# 3) Decoração (só enfeita a cena; não brilha e não pode ser pega):
+#    decoracao | id do tipo | x | z
+#
 #    Referência de lugares: areia z entre -3 e 5, calçadão z entre 7 e 10;
-#    x vai de -45 a 45 pela orla. O píer fica em x = 10.
+#    x vai de -45 a 45 pela orla. O píer fica em x = 10 (z de 2 até -22).
+#    Itens no mar (z menor que -8, longe do píer) boiam e só podem ser pegos de barco.
 
-tipo | coco   | Coco          | fruta    | coco   | 0.42 0.36 0.16
-tipo | concha | Concha        | natureza | concha | 0.95 0.72 0.62
-tipo | fita   | Fita de festa | festa    | fita   | 0.90 0.25 0.35
+tipo | coco   | Coco   | fruta    | coco   | 0.42 0.36 0.16
+tipo | concha | Concha | natureza | concha | 0.95 0.72 0.62
+tipo | garrafa | Garrafa | lixo    | garrafa | 0.35 0.65 0.45
+tipo | lata    | Lata    | lixo    | lata    | 0.80 0.18 0.18
+tipo | sacola  | Sacola  | lixo    | sacola  | 0.92 0.92 0.88
 
-# Cocos caídos pela orla (usados na missão da Dona Graça)
+# Cocos caídos pela orla (missão da Dona Graça: há mais cocos do que o necessário)
 item | coco | -16 | 2.5
 item | coco | 22  | 3.0
 item | coco | -30 | 0.5
+item | coco | -38 | 3.0
+item | coco | 30  | 2.0
+item | coco | -22 | 4.0
+item | coco | 36  | 1.5
+item | coco | -4  | 3.6
 
-# Conchas e fitas espalhadas (ainda sem missão)
-item | concha | 4    | -1.5
-item | concha | -11  | -2.0
-item | fita   | 15   | 8.6
+# Lixo da praia (missão do Seu Bené): areia, píer e boiando no mar
+item | lata    | -6   | 1.0
+item | sacola  | 14   | 3.5
+item | garrafa | 9.6  | -6
+item | lata    | 10.5 | -15
+item | garrafa | 2    | -20
+item | sacola  | 18   | -24
+item | lata    | -8   | -26
+item | garrafa | 24   | -16
+
+# Conchas na areia (decoração)
+decoracao | concha | 4   | -1.5
+decoracao | concha | -11 | -2.0
+decoracao | concha | 27  | -1.0
