@@ -30,6 +30,9 @@ public:
     void drawWater(Renderer& renderer) override;
 
     const Light& getLight() const override;
+    void setTimeScale(float scale) override;
+    float getTimeScale() const override;
+    std::string clockText() const override;
     Vec3 getPlayerStart() const override;
 
     float groundHeight(float x, float z) const override;
@@ -74,7 +77,7 @@ private:
         float matrix[16];
     };
 
-    enum class Kind { Boat, Sign, Palm, Npc, Item };
+    enum class Kind { Boat, Sign, Palm, Npc, Item, Lamp };
 
     struct Interactable {
         Kind kind;
@@ -102,6 +105,10 @@ private:
     Mesh m_pier;
     Mesh m_rocks;
     Mesh m_lamps;
+    Mesh m_bulb;
+    std::vector<Vec3> m_lampBulbs;  // posicao de cada lampada no mundo
+    std::vector<Vec3> m_lampPoles;  // base de cada poste (onde a Lia interage)
+    std::vector<bool> m_lampOn;
     Mesh m_umbrellas;
     Mesh m_sign;
     Mesh m_frond;
@@ -132,6 +139,13 @@ private:
     bool m_boatOccupied = false;
     float m_time;
 
+    // Ciclo do dia: relogio em segundos (0 = 06:00), velocidade e estado do ceu
+    float m_dayClock;
+    float m_timeScale;
+    Vec3 m_sunDirection;   // posicao real do sol (pode estar abaixo do horizonte)
+    float m_daylight;      // 0 noite, 1 dia
+    Vec3 m_skyTint;
+
     float terrainHeight(float x, float z) const;
     float terrainVisualHeight(float x, float z) const;
     bool onPier(float x, float z) const;
@@ -142,6 +156,7 @@ private:
     void buildTown();
     void buildBeach();
     void buildSky();
+    void updateDayCycle(float deltaTime);
     void buildNpcs();
     void buildItems();
     const Mesh* itemMesh(const std::string& itemId);

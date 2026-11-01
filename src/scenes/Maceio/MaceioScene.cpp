@@ -9,6 +9,8 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 
 using namespace MathUtils;
 
@@ -36,6 +38,50 @@ const float WORLD_MAX_X = 75.0f;
 const float WORLD_MIN_Z = -40.0f;
 const float WORLD_MAX_Z = 30.0f;
 
+// Ciclo do dia: o dia (06:00 -> 18:00) dura DAY_SECONDS e a noite
+// (18:00 -> 06:00) dura NIGHT_SECONDS, para a noite nao ficar comprida demais.
+const float DAY_SECONDS = 180.0f;
+const float NIGHT_SECONDS = 60.0f;
+const float START_HOUR = 9.0f;
+
+// Cores do ciclo do dia: dia, por do sol (perto do horizonte) e noite
+const Vec3 SUN_DAY = { 1.05f, 0.97f, 0.86f };
+const Vec3 SUN_DUSK = { 1.10f, 0.55f, 0.28f };
+const Vec3 MOON_LIGHT = { 0.22f, 0.27f, 0.42f };
+const Vec3 SKY_AMBIENT_DAY = { 0.42f, 0.50f, 0.62f };
+const Vec3 SKY_AMBIENT_DUSK = { 0.50f, 0.38f, 0.36f };
+const Vec3 SKY_AMBIENT_NIGHT = { 0.13f, 0.16f, 0.28f };
+const Vec3 GROUND_AMBIENT_DAY = { 0.36f, 0.31f, 0.25f };
+const Vec3 GROUND_AMBIENT_DUSK = { 0.40f, 0.28f, 0.22f };
+const Vec3 GROUND_AMBIENT_NIGHT = { 0.09f, 0.09f, 0.13f };
+const Vec3 SKY_TINT_DUSK = { 1.05f, 0.62f, 0.48f };
+const Vec3 SKY_TINT_NIGHT = { 0.10f, 0.13f, 0.27f };
+const Vec3 FOG_DAY = { 0.78f, 0.87f, 0.95f };
+
+// Hora do dia (0 a 24) <-> relogio do ciclo, em segundos
+float clockToHours(float clock)
+{
+    if (clock < DAY_SECONDS) {
+        return 6.0f + 12.0f * clock / DAY_SECONDS;
+    }
+    return std::fmod(18.0f + 12.0f * (clock - DAY_SECONDS) / NIGHT_SECONDS, 24.0f);
+}
+
+float hoursToClock(float hours)
+{
+    hours = std::fmod(std::fmod(hours, 24.0f) + 24.0f, 24.0f);
+    if (hours >= 6.0f && hours < 18.0f) {
+        return (hours - 6.0f) / 12.0f * DAY_SECONDS;
+    }
+    float sinceSunset = hours >= 18.0f ? hours - 18.0f : hours + 6.0f;
+    return DAY_SECONDS + sinceSunset / 12.0f * NIGHT_SECONDS;
+}
+
+Vec3 multiplyColor(const Vec3& a, const Vec3& b)
+{
+    return { a.x * b.x, a.y * b.y, a.z * b.z };
+}
+
 float random01(int a, int b)
 {
     uint32_t h = static_cast<uint32_t>(a) * 374761393u + static_cast<uint32_t>(b) * 668265263u;
@@ -58,7 +104,12 @@ void placeMatrix(float x, float y, float z, float yawDegrees, float scaleBy, flo
 
 MaceioScene::MaceioScene()
     : m_focus(-1),
-      m_time(0.0f)
+      m_time(0.0f),
+      m_dayClock(0.0f),
+      m_timeScale(1.0f),
+      m_sunDirection({ 0.55f, 0.62f, -0.55f }),
+      m_daylight(1.0f),
+      m_skyTint({ 1.0f, 1.0f, 1.0f })
 {
     m_light.sunDirection = { 0.55f, 0.62f, -0.55f };
     m_light.sunColor = { 1.05f, 0.97f, 0.86f };
@@ -66,6 +117,14 @@ MaceioScene::MaceioScene()
     m_light.groundAmbient = { 0.36f, 0.31f, 0.25f };
     m_light.fogColor = { 0.78f, 0.87f, 0.95f };
     m_light.fogDensity = 0.0085f;
+
+    // Hora inicial (pode ser trocada para testes: ROTA_HORA=18 comeca no por do sol)
+    float startHour = START_HOUR;
+    if (const char* hour = std::getenv("ROTA_HORA")) {
+        startHour = static_cast<float>(std::atof(hour));
+    }
+    m_dayClock = hoursToClock(startHour);
+    updateDayCycle(0.0f);
 
     identity(m_signMatrix);
     m_signPosition = { -2.5f, 0.0f, 2.0f };
@@ -234,6 +293,12 @@ void MaceioScene::buildTown()
         placeMatrix(lx, PROMENADE_TOP, 7.0f, 90.0f, 1.0f, matrix);
         m_lamps.append(lamp, matrix);
         m_circles.push_back({ lx, 7.0f, 0.2f });
+
+        if (static_cast<int>(m_lampBulbs.size()) < Light::MAX_LAMPS) {
+            m_lampBulbs.push_back(transformPoint(matrix, UrbanModels::LAMP_BULB));
+            m_lampPoles.push_back({ lx, PROMENADE_TOP, 7.0f });
+            m_lampOn.push_back(std::getenv("ROTA_POSTES") != nullptr); // teste: todos acesos
+        }
     }
 
     // Pier de madeira
@@ -462,6 +527,7 @@ void MaceioScene::buildSky()
     m_skyDome = Mesh::createSkyDome({ 0.80f, 0.89f, 0.97f }, { 0.28f, 0.53f, 0.86f });
     m_sun.addSphere({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, 16, 10, { 1.0f, 0.97f, 0.86f });
     m_disc = Mesh::createDisc(20);
+    m_bulb = UrbanModels::lampBulb();
 
     for (int i = 0; i < 4; ++i) {
         m_cloudMeshes.push_back(CoastalModels::cloud(i + 1));
@@ -511,6 +577,12 @@ bool MaceioScene::init()
                                     "coqueiro", InteractionSound::Leaves, 0.0f });
     }
 
+    // Postes de luz: E acende ou apaga a lampada (luz pontual no shader)
+    for (size_t i = 0; i < m_lampPoles.size(); ++i) {
+        m_interactables.push_back({ Kind::Lamp, static_cast<int>(i), add(m_lampPoles[i], { 0.0f, 1.4f, 0.0f }), 1.9f, 0.7f,
+                                    "", InteractionSound::Chime, 0.0f });
+    }
+
     buildNpcs();
     buildItems();
 
@@ -522,6 +594,7 @@ bool MaceioScene::init()
 void MaceioScene::update(float deltaTime, float time, const Vec3& playerPosition)
 {
     m_time = time;
+    updateDayCycle(deltaTime);
     m_boat.update(time);
     m_interactables[0].position = add(m_boat.getPosition(), { 0.0f, 0.3f, 0.0f });
 
@@ -543,6 +616,77 @@ void MaceioScene::update(float deltaTime, float time, const Vec3& playerPosition
     for (size_t i = 0; i < m_items.size(); ++i) {
         m_items[i].setHighlight(highlightFor(Kind::Item, static_cast<int>(i)));
     }
+}
+
+// ------------------------------------------------------------------ ciclo do dia
+
+void MaceioScene::updateDayCycle(float deltaTime)
+{
+    const float cycle = DAY_SECONDS + NIGHT_SECONDS;
+    m_dayClock = std::fmod(m_dayClock + deltaTime * m_timeScale, cycle);
+
+    // Angulo do sol: 0 no nascer (06:00), 90 graus ao meio-dia, 180 no por (18:00);
+    // a noite completa a volta (o sol passa por baixo do horizonte).
+    float angle;
+    if (m_dayClock < DAY_SECONDS) {
+        angle = PI * m_dayClock / DAY_SECONDS;
+    }
+    else {
+        angle = PI + PI * (m_dayClock - DAY_SECONDS) / NIGHT_SECONDS;
+    }
+
+    // O sol nasce em +X, sobe e se poe em -X, sempre um pouco para o lado do mar (-Z)
+    m_sunDirection = normalize({ std::cos(angle) * 0.8f, std::sin(angle), -0.5f });
+    float elevation = m_sunDirection.y;
+
+    float day = smoothstep(-0.08f, 0.22f, elevation);           // 0 noite, 1 dia
+    float dusk = 1.0f - smoothstep(0.0f, 0.32f, std::fabs(elevation)); // perto do horizonte
+    m_daylight = day;
+
+    if (elevation >= 0.0f) {
+        // Dia: luz do sol, mais laranja e mais fraca perto do horizonte
+        m_light.sunDirection = m_sunDirection;
+        m_light.sunColor = scale(lerp(SUN_DAY, SUN_DUSK, dusk), smoothstep(-0.02f, 0.10f, elevation));
+    }
+    else {
+        // Noite: a "lua" fica do lado oposto do ceu e da uma luz azulada fraca
+        m_light.sunDirection = { -m_sunDirection.x, -m_sunDirection.y, m_sunDirection.z };
+        m_light.sunColor = scale(MOON_LIGHT, smoothstep(-0.02f, 0.10f, -elevation));
+    }
+
+    m_light.skyAmbient = lerp(lerp(SKY_AMBIENT_NIGHT, SKY_AMBIENT_DAY, day), SKY_AMBIENT_DUSK, dusk * 0.6f);
+    m_light.groundAmbient = lerp(lerp(GROUND_AMBIENT_NIGHT, GROUND_AMBIENT_DAY, day), GROUND_AMBIENT_DUSK, dusk * 0.6f);
+
+    // Ceu e neblina: o degrade do ceu e multiplicado por esta tinta
+    m_skyTint = lerp(lerp(SKY_TINT_NIGHT, { 1.0f, 1.0f, 1.0f }, day), SKY_TINT_DUSK, dusk * 0.85f);
+    m_light.fogColor = multiplyColor(FOG_DAY, m_skyTint);
+
+    // Postes acesos viram luzes pontuais
+    m_light.lampCount = static_cast<int>(m_lampBulbs.size());
+    for (int i = 0; i < m_light.lampCount; ++i) {
+        m_light.lampPositions[i] = m_lampBulbs[i];
+        m_light.lampIntensity[i] = m_lampOn[i] ? 1.0f : 0.0f;
+    }
+}
+
+void MaceioScene::setTimeScale(float scale)
+{
+    m_timeScale = scale;
+}
+
+float MaceioScene::getTimeScale() const
+{
+    return m_timeScale;
+}
+
+std::string MaceioScene::clockText() const
+{
+    float hours = clockToHours(m_dayClock);
+    int h = static_cast<int>(hours);
+    int m = static_cast<int>((hours - h) * 60.0f);
+    char text[16];
+    std::snprintf(text, sizeof(text), "%02d:%02d", h % 24, m);
+    return text;
 }
 
 float MaceioScene::highlightFor(Kind kind, int index) const
@@ -698,7 +842,7 @@ void MaceioScene::setFocus(int id)
 
 Interaction MaceioScene::interact(int id)
 {
-    Interaction result = { "", InteractionSound::Chime, "", 0, false };
+    Interaction result = { "", InteractionSound::Chime, "", 0, false, "" };
 
     if (id < 0 || id >= static_cast<int>(m_interactables.size())) {
         return result;
@@ -713,6 +857,13 @@ Interaction MaceioScene::interact(int id)
 
     if (item.kind == Kind::Boat) {
         result.boat = true;
+    }
+
+    if (item.kind == Kind::Lamp) {
+        // Acende ou apaga o poste (a luz pontual muda no proximo quadro)
+        bool on = !m_lampOn[item.index];
+        m_lampOn[item.index] = on;
+        result.toast = on ? "Poste aceso!" : "Poste apagado.";
     }
 
     if (item.kind == Kind::Item) {
@@ -803,19 +954,37 @@ Vec3 MaceioScene::getPlayerStart() const
 
 void MaceioScene::drawSky(Renderer& renderer, const Camera& camera, float time)
 {
-    renderer.drawSky(m_skyDome, camera);
+    renderer.drawSky(m_skyDome, camera, m_skyTint);
 
     Vec3 eye = camera.getPosition();
-    Vec3 sunDir = normalize(m_light.sunDirection);
+    Vec3 sunDir = m_sunDirection;
 
     glDepthMask(GL_FALSE);
 
-    Material sun;
-    sun.unlit = true;
-    sun.fog = false;
-    float matrix[16];
-    placeMatrix(eye.x + sunDir.x * 170.0f, eye.y + sunDir.y * 170.0f, eye.z + sunDir.z * 170.0f, 0.0f, 7.0f, matrix);
-    renderer.draw(m_sun, matrix, sun);
+    // Sol: fica laranja e maior perto do horizonte; some abaixo dele
+    float dusk = 1.0f - smoothstep(0.0f, 0.32f, std::fabs(sunDir.y));
+    if (sunDir.y > -0.12f) {
+        Material sun;
+        sun.unlit = true;
+        sun.fog = false;
+        sun.color = lerp({ 1.0f, 0.97f, 0.86f }, { 1.0f, 0.55f, 0.28f }, dusk);
+        float matrix[16];
+        placeMatrix(eye.x + sunDir.x * 170.0f, eye.y + sunDir.y * 170.0f, eye.z + sunDir.z * 170.0f, 0.0f,
+                    7.0f + 3.0f * dusk, matrix);
+        renderer.draw(m_sun, matrix, sun);
+    }
+
+    // Lua: do lado oposto do ceu, aparece quando o sol se poe
+    Vec3 moonDir = normalize({ -sunDir.x, -sunDir.y, sunDir.z });
+    if (moonDir.y > -0.12f) {
+        Material moon;
+        moon.unlit = true;
+        moon.fog = false;
+        moon.color = scale({ 0.86f, 0.89f, 0.96f }, 0.35f + 0.65f * (1.0f - m_daylight));
+        float matrix[16];
+        placeMatrix(eye.x + moonDir.x * 170.0f, eye.y + moonDir.y * 170.0f, eye.z + moonDir.z * 170.0f, 0.0f, 4.5f, matrix);
+        renderer.draw(m_sun, matrix, moon);
+    }
 
     // Nuvens: acompanham a camera (ficam "no infinito") e andam devagar
     Material cloud;
@@ -884,6 +1053,25 @@ void MaceioScene::drawOpaque(Renderer& renderer, float time)
     metal.shininess = 40.0f;
     renderer.draw(m_lamps, identityMatrix, metal);
 
+    // Lampadas: acesas brilham sozinhas (sem luz, cor forte); apagadas sao vidro
+    for (size_t i = 0; i < m_lampBulbs.size(); ++i) {
+        float bulbMatrix[16];
+        translation(m_lampBulbs[i].x, m_lampBulbs[i].y, m_lampBulbs[i].z, bulbMatrix);
+
+        Material bulb;
+        if (m_lampOn[i]) {
+            bulb.unlit = true;
+            bulb.color = { 1.0f, 0.92f, 0.62f };
+        }
+        else {
+            bulb.color = { 0.72f, 0.74f, 0.72f };
+            bulb.specular = 0.6f;
+            bulb.shininess = 60.0f;
+            bulb.highlight = highlightFor(Kind::Lamp, static_cast<int>(i));
+        }
+        renderer.draw(m_bulb, bulbMatrix, bulb);
+    }
+
     Material cloth;
     cloth.twoSided = true;
     cloth.specular = 0.05f;
@@ -948,12 +1136,14 @@ void MaceioScene::drawOpaque(Renderer& renderer, float time)
 void MaceioScene::drawBlobShadow(Renderer& renderer, const Vec3& point, float radius, float opacity)
 {
     // Projeta o ponto no chao na direcao oposta ao sol
+    // (com o sol baixo a sombra ficaria comprida demais: limita a inclinacao)
     Vec3 sunDir = normalize(m_light.sunDirection);
+    float sunHeight = std::fmax(sunDir.y, 0.35f);
     float ground = groundHeight(point.x, point.z);
     float heightAbove = std::fmax(point.y - ground, 0.0f);
 
-    float x = point.x - sunDir.x / sunDir.y * heightAbove;
-    float z = point.z - sunDir.z / sunDir.y * heightAbove;
+    float x = point.x - sunDir.x / sunHeight * heightAbove;
+    float z = point.z - sunDir.z / sunHeight * heightAbove;
     float y = groundHeight(x, z);
 
     if (y < -0.2f && !onPier(x, z)) {
@@ -969,7 +1159,7 @@ void MaceioScene::drawBlobShadow(Renderer& renderer, const Vec3& point, float ra
     Material shadow;
     shadow.unlit = true;
     shadow.color = { 0.0f, 0.0f, 0.0f };
-    shadow.alpha = opacity;
+    shadow.alpha = opacity * (0.35f + 0.65f * m_daylight); // a noite a sombra e mais fraca
     renderer.draw(m_disc, matrix, shadow);
 }
 
@@ -987,6 +1177,22 @@ void MaceioScene::drawShadows(Renderer& renderer, const Vec3& playerPosition)
 
     for (const Vec3& spot : m_umbrellaSpots) {
         drawBlobShadow(renderer, add(spot, { 0.0f, 2.2f, 0.0f }), 1.3f, 0.25f);
+    }
+
+    // Brilho em volta das lampadas acesas (transparente, mais forte a noite)
+    for (size_t i = 0; i < m_lampBulbs.size(); ++i) {
+        if (!m_lampOn[i]) continue;
+        float matrix[16];
+        float local[16];
+        translation(m_lampBulbs[i].x, m_lampBulbs[i].y - 0.05f, m_lampBulbs[i].z, matrix);
+        scaling(3.2f, 3.6f, 3.2f, local);
+        apply(matrix, local);
+
+        Material glow;
+        glow.unlit = true;
+        glow.color = { 1.0f, 0.85f, 0.5f };
+        glow.alpha = 0.10f + 0.18f * (1.0f - m_daylight);
+        renderer.draw(m_bulb, matrix, glow);
     }
 }
 

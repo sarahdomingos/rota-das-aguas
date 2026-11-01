@@ -34,7 +34,7 @@ public:
 
     void beginFrame(const Camera& camera, const Light& light, float time);
 
-    void drawSky(const Mesh& dome, const Camera& camera);
+    void drawSky(const Mesh& dome, const Camera& camera, const Vec3& tint = { 1.0f, 1.0f, 1.0f });
 
     void draw(const Mesh& mesh, const float modelMatrix[16], const Material& material);
     void draw(const Model& model, const float modelMatrix[16], const Material& material);

@@ -1,6 +1,7 @@
 // Fragment shader (GLSL 1.10 / OpenGL 2.0)
-// Iluminacao de Phong (Blinn-Phong) por pixel: luz do sol (difusa + especular)
-// e luz ambiente hemisferica (ceu/chao), com neblina e efeitos da agua.
+// Iluminacao de Phong (Blinn-Phong) por pixel: luz do sol (difusa + especular),
+// luz ambiente hemisferica (ceu/chao), luzes pontuais dos postes (com
+// atenuacao pela distancia), neblina e efeitos da agua.
 
 uniform vec4 u_color;
 uniform sampler2D u_texture;
@@ -14,6 +15,12 @@ uniform vec3 u_groundAmbient;
 uniform vec3 u_fogColor;
 uniform float u_fogDensity;
 uniform float u_useFog;
+
+// Postes de luz: luzes pontuais (u_lampOn = 0 apagado, 1 aceso)
+#define MAX_LAMPS 10
+uniform vec3 u_lampPos[MAX_LAMPS];
+uniform float u_lampOn[MAX_LAMPS];
+uniform vec3 u_lampColor;
 
 uniform float u_specular;
 uniform float u_shininess;
@@ -77,7 +84,25 @@ void main()
         specular = pow(max(dot(n, halfway), 0.0), u_shininess) * u_specular;
     }
 
-    vec3 color = base.rgb * (ambient + u_sunColor * diffuse) + u_sunColor * specular;
+    // Luzes pontuais: a intensidade cai com a distancia (atenuacao quadratica)
+    vec3 lampDiffuse = vec3(0.0);
+    vec3 lampSpecular = vec3(0.0);
+    for (int i = 0; i < MAX_LAMPS; ++i) {
+        if (u_lampOn[i] > 0.001) {
+            vec3 toLamp = u_lampPos[i] - v_worldPos;
+            float dist = length(toLamp);
+            vec3 lampDir = toLamp / dist;
+            float attenuation = u_lampOn[i] / (1.0 + 0.10 * dist + 0.06 * dist * dist);
+            float lambert = max(dot(n, lampDir), 0.0);
+            lampDiffuse += u_lampColor * lambert * attenuation;
+            if (lambert > 0.0) {
+                vec3 lampHalf = normalize(lampDir + toCamera);
+                lampSpecular += u_lampColor * pow(max(dot(n, lampHalf), 0.0), u_shininess) * u_specular * attenuation;
+            }
+        }
+    }
+
+    vec3 color = base.rgb * (ambient + u_sunColor * diffuse + lampDiffuse) + u_sunColor * specular + lampSpecular;
     float alpha = base.a;
 
     if (u_water > 0.5) {

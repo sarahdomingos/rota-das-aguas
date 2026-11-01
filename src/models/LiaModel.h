@@ -3,6 +3,8 @@
 
 // Modelo low-poly da Lia gerado por codigo (spec, sec. 6), na versao simples:
 // cabelo liso em bloco, camiseta, short, mochila e sandalias.
+// As pecas usam primitivas lisas (normais suaves) e caixas arredondadas, e a
+// roupa e o cabelo recebem texturas geradas por codigo (tecido e fios).
 //
 // O modelo e dividido em partes para a hierarquia de transformacoes:
 // corpo (tronco + cabeca + cabelo + mochila), dois bracos e duas pernas,
@@ -28,12 +30,20 @@ struct CharacterStyle {
     float height;       // escala do personagem (1 = altura da Lia)
 };
 
+// Cada parte do corpo tem tres malhas, cada uma com o seu material:
+// pele (lisa, sem textura), roupa (textura de tecido) e cabelo (textura de fios).
+struct CharacterPart {
+    Mesh skin;
+    Mesh cloth;
+    Mesh hair;
+};
+
 struct CharacterModel {
-    Mesh body;
-    Mesh leftArm;
-    Mesh rightArm;
-    Mesh leftLeg;
-    Mesh rightLeg;
+    CharacterPart body;
+    CharacterPart leftArm;
+    CharacterPart rightArm;
+    CharacterPart leftLeg;
+    CharacterPart rightLeg;
 
     Vec3 leftShoulder;
     Vec3 rightShoulder;

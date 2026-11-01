@@ -18,6 +18,10 @@ std::vector<unsigned char> water();
 std::vector<unsigned char> plaster();
 std::vector<unsigned char> stone();
 
+// Personagens: trama de tecido (roupas, mochila, chapeu) e fios de cabelo.
+std::vector<unsigned char> fabric();
+std::vector<unsigned char> hair();
+
 }
 
 #endif

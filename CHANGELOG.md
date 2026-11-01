@@ -2,6 +2,45 @@
 
 Uma entrada por pedido feito no projeto, da mais recente para a mais antiga.
 
+## 2026-11-01 — Ajustes da segunda entrega (postes de luz, ciclo do sol e modelos mais lisos)
+
+**Pedido:** ajustes apontados pela equipe para cumprir melhor os requisitos da atividade, sem mexer no que já funciona:
+- interação da Lia com os postes de luz (E acende e apaga);
+- sol nascendo e se pondo com o passar do tempo;
+- texturas mais caprichadas, principalmente nos personagens, bordas menos pontudas e junções das primitivas menos visíveis (ex.: garrafas do lixo).
+
+Feito na branch `ajustes-segunda-entrega`, criada a partir da `development`.
+
+### Adicionado
+- **Postes de luz interativos:** E (ou clique) perto de um dos 9 postes do calçadão acende ou apaga a lâmpada, com som e aviso na tela ("Poste aceso!" / "Poste apagado.").
+  - Cada lâmpada acesa é uma **luz pontual** no shader, com atenuação pela distância: ilumina o chão, a Lia, os NPCs e a água em volta, em tom amarelado.
+  - A lâmpada acesa brilha (material sem luz) e ganha um halo transparente, mais forte à noite. Apagada, vira um vidro cinza com brilho especular.
+  - Até 10 luzes pontuais (`Light::MAX_LAMPS`), enviadas ao shader em `u_lampPos[]` e `u_lampOn[]`.
+- **Ciclo do dia** (`MaceioScene::updateDayCycle`):
+  - o sol nasce no leste (06:00), passa pelo alto e se põe (18:00). A direção da luz, a cor do sol, a luz ambiente, a cor do céu e a neblina mudam com a altura do sol: branco ao meio-dia, laranja no nascer e no pôr do sol, azul-escuro à noite;
+  - à noite a luz direcional vira a **lua** (azulada e fraca), do lado oposto do céu, e a lua aparece no céu;
+  - o dia dura 3 minutos e a noite, 1 minuto; o jogo começa às 09:00;
+  - relógio no canto superior direito da tela;
+  - **N** acelera o tempo 12× (bom para mostrar o pôr do sol no vídeo) e N de novo volta ao normal.
+- Testes: `ROTA_HORA=<hora>` abre o jogo nessa hora e `ROTA_POSTES=1` abre com os postes acesos.
+- `Mesh::addRoundedBox`: caixa com cantos arredondados (normais suaves nas bordas).
+- `Mesh::addLathe`: superfície de revolução (torno) a partir de um perfil, uma peça lisa só.
+- `Mesh::addSmoothTriangle`: triângulo com uma normal por vértice.
+- Texturas geradas por código para os personagens: **tecido** (trama de fios, em roupas, mochila e chapéu) e **cabelo** (fios). `ProceduralTextures::fabric` e `hair`.
+- `UrbanModels::lampBulb` e `UrbanModels::LAMP_BULB` (lâmpada separada do poste).
+
+### Alterado
+- **Normais suaves** em todas as esferas (`addSphere`) e nas laterais dos cilindros e cones (`addFrustum`): a luz não mostra mais as faces e emendas desses objetos (coqueiros, cocos, nuvens, postes, personagens, itens). Caixas soltas e o terreno continuam facetados (estilo low-poly).
+- **Lia e NPCs** (`LiaModel`): cada parte do corpo agora tem três malhas com materiais diferentes (pele lisa, roupa com tecido e cabelo com fios e mais brilho); mais segmentos na cabeça, braços e pernas; camiseta feita por revolução com ombro arredondado; ombros, joelhos e tornozelos arredondados; mochila, alças, cabelo, sandálias, avental, sobrancelhas e boca com caixas arredondadas; chapéu de palha numa peça só.
+- **Lixo** (`ItemModels`): garrafa e lata feitas por revolução, sem divisões visíveis entre corpo, ombro e gargalo; sacola e coco com mais segmentos.
+- **Poste**: mais segmentos e juntas arredondadas; a lâmpada saiu da malha do poste.
+- `Light` ganhou as luzes pontuais; `Renderer::beginFrame` envia os postes ao shader e `Renderer::drawSky` recebe a tinta do céu.
+- `basic.frag`: soma a luz difusa e especular dos postes à do sol.
+- Ícones do quadro da missão usam uma luz fixa de dia (não ficam escuros à noite).
+- Sombras simples: com o sol baixo a sombra não fica comprida demais, e à noite fica mais fraca.
+- `Interaction` ganhou o campo `toast` (aviso rápido sem diálogo).
+- README: postes, tecla N, ciclo do dia e variáveis de teste. Tela de pausa: linha com o poste e a tecla N.
+
 ## 2026-10-11 — Ajustes de Maceió (missões mais difíceis, barco, quadro da missão e relatório)
 
 **Pedido:** ajustes decididos com a equipe:

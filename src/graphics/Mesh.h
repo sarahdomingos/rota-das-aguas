@@ -6,7 +6,9 @@
 //
 // As funcoes add* sao os "tijolos" usados pelos geradores de modelos
 // (src/models): cada modelo low-poly e montado juntando primitivas.
-// Os triangulos usam normal por face, o que da o visual facetado low-poly.
+// Caixas e triangulos soltos usam normal por face (visual facetado low-poly);
+// esferas, cilindros, superficies de revolucao (lathe) e caixas arredondadas
+// usam normal suave por vertice, entao a luz nao mostra as "emendas".
 
 #include "MathUtils.h"
 
@@ -36,6 +38,24 @@ public:
     // Cilindro (ou cone) entre os pontos p0 e p1, com raios r0 e r1.
     void addFrustum(const Vec3& p0, const Vec3& p1, float r0, float r1, int segments,
                     const Vec3& color, bool caps = true);
+
+    // Caixa com cantos arredondados (raio radius): cada face e uma grade que
+    // "dobra" nas bordas, com normal suave. Fica menos pontuda que a addBox.
+    void addRoundedBox(const Vec3& center, const Vec3& size, float radius, const Vec3& color,
+                       int bevelSteps = 3);
+
+    // Superficie de revolucao (torno): o perfil (t, raio) gira em torno do eixo
+    // p0 -> p1 (t = 0 em p0, t = 1 em p1). Uma unica peca lisa, sem emendas
+    // entre partes (ex.: garrafa com corpo, ombro e gargalo).
+    struct ProfilePoint { float t; float radius; };
+    void addLathe(const Vec3& p0, const Vec3& p1, const std::vector<ProfilePoint>& profile,
+                  int segments, const Vec3& color);
+
+    // Triangulo com uma normal por vertice (sombreamento suave).
+    void addSmoothTriangle(const Vec3& a, const Vec3& b, const Vec3& c,
+                           const Vec3& na, const Vec3& nb, const Vec3& nc,
+                           const TexCoord& ta, const TexCoord& tb, const TexCoord& tc,
+                           const Vec3& color);
 
     // Esfera low-poly (elipsoide se os raios forem diferentes).
     void addSphere(const Vec3& center, const Vec3& radii, int slices, int stacks, const Vec3& color);

@@ -4,6 +4,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <cstdio>
+
 #ifndef GL_MULTISAMPLE
 #define GL_MULTISAMPLE 0x809D
 #endif
@@ -54,9 +56,20 @@ void Renderer::beginFrame(const Camera& camera, const Light& light, float time)
     m_shader.setVec3("u_groundAmbient", light.groundAmbient);
     m_shader.setVec3("u_fogColor", light.fogColor);
     m_shader.setFloat("u_fogDensity", light.fogDensity);
+
+    // Postes de luz (luzes pontuais). As posicoes nao usadas ficam apagadas.
+    m_shader.setVec3("u_lampColor", light.lampColor);
+    for (int i = 0; i < Light::MAX_LAMPS; ++i) {
+        char name[32];
+        bool used = i < light.lampCount;
+        std::snprintf(name, sizeof(name), "u_lampPos[%d]", i);
+        m_shader.setVec3(name, used ? light.lampPositions[i] : Vec3{ 0.0f, -1000.0f, 0.0f });
+        std::snprintf(name, sizeof(name), "u_lampOn[%d]", i);
+        m_shader.setFloat(name, used ? light.lampIntensity[i] : 0.0f);
+    }
 }
 
-void Renderer::drawSky(const Mesh& dome, const Camera& camera)
+void Renderer::drawSky(const Mesh& dome, const Camera& camera, const Vec3& tint)
 {
     // A cupula acompanha a camera e nao grava profundidade: fica sempre "atras" de tudo.
     Vec3 eye = camera.getPosition();
@@ -68,7 +81,10 @@ void Renderer::drawSky(const Mesh& dome, const Camera& camera)
     MathUtils::scaling(150.0f, 150.0f, 150.0f, scaleMatrix);
     MathUtils::apply(matrix, scaleMatrix);
 
+    // A cor do degrade e multiplicada pela tinta (azul de dia, laranja no
+    // por do sol, azul-escuro a noite)
     Material sky;
+    sky.color = tint;
     sky.unlit = true;
     sky.fog = false;
 
@@ -170,7 +186,11 @@ void Renderer::beginIcons(int width, int height)
 
     m_shader.setMat4("u_projection", projection);
     m_shader.setMat4("u_view", view);
+    // Luz fixa de "dia" para os icones, mesmo se a cena estiver de noite
     m_shader.setVec3("u_sunDir", MathUtils::normalize({ 0.35f, 0.6f, 0.75f }));
+    m_shader.setVec3("u_sunColor", { 1.05f, 0.97f, 0.86f });
+    m_shader.setVec3("u_skyAmbient", { 0.42f, 0.50f, 0.62f });
+    m_shader.setVec3("u_groundAmbient", { 0.36f, 0.31f, 0.25f });
     m_shader.setVec3("u_cameraPos", { width * 0.5f, height * 0.5f, 1000.0f });
 
     glClear(GL_DEPTH_BUFFER_BIT);

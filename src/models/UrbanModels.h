@@ -36,8 +36,12 @@ Mesh houseRoof(const HouseDescription& house);
 // railGapStart/railGapEnd: trecho (em z local, negativo) sem guarda-corpo do lado +X.
 Mesh pier(float width, float length, float deckHeight, float railGapStart, float railGapEnd);
 
-// Poste de iluminacao da orla (base em y = 0).
+// Poste de iluminacao da orla (base em y = 0), sem a lampada.
 Mesh streetLamp();
+
+// Lampada do poste (centrada na origem); vai em LAMP_BULB, no sistema do poste.
+const Vec3 LAMP_BULB = { 0.65f, 3.52f, 0.0f };
+Mesh lampBulb();
 
 // Placa de madeira com moldura (base em y = 0), virada para +Z.
 Mesh woodenSign();
