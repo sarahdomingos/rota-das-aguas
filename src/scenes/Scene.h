@@ -33,6 +33,7 @@ struct Interaction {
     std::string itemId;         // item pego (ou vazio)
     int itemQuantity;
     bool boat;                  // interagiu com o barco (embarcar)
+    std::string toast;          // aviso rapido na tela (ex.: "Poste aceso")
 };
 
 class Scene {
@@ -48,6 +49,11 @@ public:
     virtual void drawWater(Renderer& renderer) = 0;
 
     virtual const Light& getLight() const = 0;
+
+    // Ciclo do dia: velocidade do relogio (1 = normal) e hora atual ("14:30")
+    virtual void setTimeScale(float scale) { (void)scale; }
+    virtual float getTimeScale() const { return 1.0f; }
+    virtual std::string clockText() const { return ""; }
     virtual Vec3 getPlayerStart() const = 0;
 
     // Mundo fisico: altura do chao, tipo de piso e colisao

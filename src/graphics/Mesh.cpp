@@ -68,6 +68,26 @@ void Mesh::addBox(const Vec3& center, const Vec3& size, const Vec3& color)
     addQuad({ x0, y0, z0 }, { x1, y0, z0 }, { x1, y0, z1 }, { x0, y0, z1 }, color, size.x, size.z);
 }
 
+void Mesh::addSmoothTriangle(const Vec3& a, const Vec3& b, const Vec3& c,
+                             const Vec3& na, const Vec3& nb, const Vec3& nc,
+                             const TexCoord& ta, const TexCoord& tb, const TexCoord& tc,
+                             const Vec3& color)
+{
+    // Garante o sentido anti-horario visto de fora: se a face aponta contra as
+    // normais dadas, troca a ordem de dois vertices.
+    Vec3 face = cross(subtract(b, a), subtract(c, a));
+    if (dot(face, add(add(na, nb), nc)) < 0.0f) {
+        addVertex(a, na, color, ta);
+        addVertex(c, nc, color, tc);
+        addVertex(b, nb, color, tb);
+        return;
+    }
+
+    addVertex(a, na, color, ta);
+    addVertex(b, nb, color, tb);
+    addVertex(c, nc, color, tc);
+}
+
 void Mesh::addFrustum(const Vec3& p0, const Vec3& p1, float r0, float r1, int segments,
                       const Vec3& color, bool caps)
 {
@@ -81,6 +101,11 @@ void Mesh::addFrustum(const Vec3& p0, const Vec3& p1, float r0, float r1, int se
 
     float circumference = 2.0f * PI * (r0 + r1) * 0.5f;
 
+    // Normal suave da lateral: aponta para fora (raio) e inclina conforme o cone
+    auto sideNormal = [&](const Vec3& d) {
+        return normalize(add(scale(d, height), scale(axis, r0 - r1)));
+    };
+
     for (int i = 0; i < segments; ++i) {
         float a0 = 2.0f * PI * i / segments;
         float a1 = 2.0f * PI * (i + 1) / segments;
@@ -93,15 +118,156 @@ void Mesh::addFrustum(const Vec3& p0, const Vec3& p1, float r0, float r1, int se
         Vec3 t0 = add(p1, scale(d0, r1));
         Vec3 t1 = add(p1, scale(d1, r1));
 
+        Vec3 n0 = sideNormal(d0);
+        Vec3 n1 = sideNormal(d1);
+
         float uu0 = circumference * i / segments;
         float uu1 = circumference * (i + 1) / segments;
 
-        addTriangle(b0, b1, t1, { uu0, 0.0f }, { uu1, 0.0f }, { uu1, height }, color);
-        addTriangle(b0, t1, t0, { uu0, 0.0f }, { uu1, height }, { uu0, height }, color);
+        addSmoothTriangle(b0, b1, t1, n0, n1, n1, { uu0, 0.0f }, { uu1, 0.0f }, { uu1, height }, color);
+        addSmoothTriangle(b0, t1, t0, n0, n1, n0, { uu0, 0.0f }, { uu1, height }, { uu0, height }, color);
 
         if (caps) {
             if (r1 > 0.0001f) addTriangle(p1, t0, t1, color);
             if (r0 > 0.0001f) addTriangle(p0, b1, b0, color);
+        }
+    }
+}
+
+void Mesh::addLathe(const Vec3& p0, const Vec3& p1, const std::vector<ProfilePoint>& profile,
+                    int segments, const Vec3& color)
+{
+    if (profile.size() < 2) {
+        return;
+    }
+
+    Vec3 axis = normalize(subtract(p1, p0));
+    float height = length(subtract(p1, p0));
+
+    Vec3 helper = std::fabs(axis.y) < 0.99f ? Vec3{ 0.0f, 1.0f, 0.0f } : Vec3{ 1.0f, 0.0f, 0.0f };
+    Vec3 u = normalize(cross(helper, axis));
+    Vec3 v = cross(axis, u);
+
+    const int count = static_cast<int>(profile.size());
+
+    // Normal do perfil em cada ponto (no plano eixo x raio), pela media dos
+    // vizinhos: e isso que deixa as passagens corpo -> ombro -> gargalo lisas.
+    std::vector<float> normalAxial(count);
+    std::vector<float> normalRadial(count);
+    for (int i = 0; i < count; ++i) {
+        const ProfilePoint& before = profile[i > 0 ? i - 1 : i];
+        const ProfilePoint& after = profile[i < count - 1 ? i + 1 : i];
+        float dt = (after.t - before.t) * height;
+        float dr = after.radius - before.radius;
+
+        float axial = -dr;
+        float radial = dt;
+
+        // Pontas fechadas (raio zero): a normal aponta ao longo do eixo
+        if (profile[i].radius < 0.0001f) {
+            axial = (i == 0) ? -1.0f : 1.0f;
+            radial = 0.0f;
+        }
+
+        float len = std::sqrt(axial * axial + radial * radial);
+        normalAxial[i] = len > 0.0f ? axial / len : 0.0f;
+        normalRadial[i] = len > 0.0f ? radial / len : 1.0f;
+    }
+
+    auto point = [&](int ring, int slice, Vec3& position, Vec3& normal) {
+        float angle = 2.0f * PI * slice / segments;
+        Vec3 d = add(scale(u, std::cos(angle)), scale(v, std::sin(angle)));
+        Vec3 center = add(p0, scale(axis, profile[ring].t * height));
+        position = add(center, scale(d, profile[ring].radius));
+        normal = normalize(add(scale(d, normalRadial[ring]), scale(axis, normalAxial[ring])));
+    };
+
+    for (int ring = 0; ring < count - 1; ++ring) {
+        for (int slice = 0; slice < segments; ++slice) {
+            Vec3 a, b, c, d;
+            Vec3 na, nb, nc, nd;
+            point(ring, slice, a, na);
+            point(ring, slice + 1, b, nb);
+            point(ring + 1, slice + 1, c, nc);
+            point(ring + 1, slice, d, nd);
+
+            float u0 = static_cast<float>(slice) / segments;
+            float u1 = static_cast<float>(slice + 1) / segments;
+            TexCoord ta = { u0, profile[ring].t }, tb = { u1, profile[ring].t };
+            TexCoord tc = { u1, profile[ring + 1].t }, td = { u0, profile[ring + 1].t };
+
+            if (profile[ring].radius > 0.0001f) {
+                addSmoothTriangle(a, b, c, na, nb, nc, ta, tb, tc, color);
+            }
+            if (profile[ring + 1].radius > 0.0001f) {
+                addSmoothTriangle(a, c, d, na, nc, nd, ta, tc, td, color);
+            }
+        }
+    }
+}
+
+void Mesh::addRoundedBox(const Vec3& center, const Vec3& size, float radius, const Vec3& color,
+                         int bevelSteps)
+{
+    float half[3] = { size.x * 0.5f, size.y * 0.5f, size.z * 0.5f };
+    float r = std::fmin(radius, std::fmin(half[0], std::fmin(half[1], half[2])));
+    if (bevelSteps < 1) bevelSteps = 1;
+
+    // Coordenadas da grade em um eixo: mais pontos perto das bordas (onde dobra)
+    auto samples = [&](float h) {
+        std::vector<float> list;
+        for (int k = 0; k <= bevelSteps; ++k) list.push_back(-h + r * k / bevelSteps);
+        for (int k = 0; k <= bevelSteps; ++k) {
+            float value = (h - r) + r * k / bevelSteps;
+            if (k == 0 && h - r < 0.00001f) continue; // evita ponto repetido
+            list.push_back(value);
+        }
+        return list;
+    };
+
+    // Ponto da face -> superficie arredondada: parte "interna" (caixa encolhida
+    // pelo raio) + raio na direcao do ponto. A normal e essa mesma direcao.
+    auto roundPoint = [&](const float p[3], Vec3& position, Vec3& normal) {
+        float inner[3];
+        float diff[3];
+        for (int k = 0; k < 3; ++k) {
+            inner[k] = clamp(p[k], -(half[k] - r), half[k] - r);
+            diff[k] = p[k] - inner[k];
+        }
+        normal = normalize({ diff[0], diff[1], diff[2] });
+        position = { center.x + inner[0] + normal.x * r,
+                     center.y + inner[1] + normal.y * r,
+                     center.z + inner[2] + normal.z * r };
+    };
+
+    for (int axis = 0; axis < 3; ++axis) {
+        int ua = (axis + 1) % 3;
+        int va = (axis + 2) % 3;
+        std::vector<float> su = samples(half[ua]);
+        std::vector<float> sv = samples(half[va]);
+
+        for (int side = -1; side <= 1; side += 2) {
+            for (size_t i = 0; i + 1 < su.size(); ++i) {
+                for (size_t j = 0; j + 1 < sv.size(); ++j) {
+                    Vec3 pos[4];
+                    Vec3 nor[4];
+                    TexCoord uv[4];
+                    const size_t ii[4] = { i, i + 1, i + 1, i };
+                    const size_t jj[4] = { j, j, j + 1, j + 1 };
+
+                    for (int k = 0; k < 4; ++k) {
+                        float p[3];
+                        p[axis] = side * half[axis];
+                        p[ua] = su[ii[k]];
+                        p[va] = sv[jj[k]];
+                        roundPoint(p, pos[k], nor[k]);
+                        uv[k] = { p[ua], p[va] };
+                    }
+
+                    addSmoothTriangle(pos[0], pos[1], pos[2], nor[0], nor[1], nor[2], uv[0], uv[1], uv[2], color);
+                    addSmoothTriangle(pos[0], pos[2], pos[3], nor[0], nor[2], nor[3], uv[0], uv[2], uv[3], color);
+                }
+            }
         }
     }
 }
@@ -122,6 +288,13 @@ void Mesh::addSphere(const Vec3& center, const Vec3& radii, int slices, int stac
         return TexCoord{ static_cast<float>(slice) / slices, 1.0f - static_cast<float>(stack) / stacks };
     };
 
+    // Normal suave do elipsoide: gradiente da superficie em cada vertice
+    auto normalAt = [&](const Vec3& p) {
+        Vec3 offset = subtract(p, center);
+        return normalize({ offset.x / (radii.x * radii.x), offset.y / (radii.y * radii.y),
+                           offset.z / (radii.z * radii.z) });
+    };
+
     for (int stack = 0; stack < stacks; ++stack) {
         for (int slice = 0; slice < slices; ++slice) {
             Vec3 a = point(slice, stack);
@@ -130,10 +303,12 @@ void Mesh::addSphere(const Vec3& center, const Vec3& radii, int slices, int stac
             Vec3 d = point(slice, stack + 1);
 
             if (stack != 0) {
-                addTriangle(a, b, d, uv(slice, stack), uv(slice + 1, stack), uv(slice, stack + 1), color);
+                addSmoothTriangle(a, b, d, normalAt(a), normalAt(b), normalAt(d),
+                                  uv(slice, stack), uv(slice + 1, stack), uv(slice, stack + 1), color);
             }
             if (stack != stacks - 1) {
-                addTriangle(b, c, d, uv(slice + 1, stack), uv(slice + 1, stack + 1), uv(slice, stack + 1), color);
+                addSmoothTriangle(b, c, d, normalAt(b), normalAt(c), normalAt(d),
+                                  uv(slice + 1, stack), uv(slice + 1, stack + 1), uv(slice, stack + 1), color);
             }
         }
     }

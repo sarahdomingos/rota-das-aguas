@@ -24,11 +24,13 @@ float smooth(float t)
     return t * t * (3.0f - 2.0f * t);
 }
 
-// Ruido de valor repetivel com periodo "period" celulas ao longo da textura.
-float valueNoise(float u, float v, int period, int seed)
+// Ruido de valor repetivel com periodo "period" celulas ao longo da textura
+// (periodY, se dado, e o numero de celulas na vertical).
+float valueNoise(float u, float v, int period, int seed, int periodY = 0)
 {
+    if (periodY <= 0) periodY = period;
     float x = u * period;
-    float y = v * period;
+    float y = v * periodY;
 
     int x0 = static_cast<int>(std::floor(x));
     int y0 = static_cast<int>(std::floor(y));
@@ -36,7 +38,7 @@ float valueNoise(float u, float v, int period, int seed)
     float fy = smooth(y - y0);
 
     auto at = [&](int ix, int iy) {
-        return hash(((ix % period) + period) % period, ((iy % period) + period) % period, seed);
+        return hash(((ix % period) + period) % period, ((iy % periodY) + periodY) % periodY, seed);
     };
 
     float a = at(x0, y0), b = at(x0 + 1, y0);
@@ -196,6 +198,45 @@ std::vector<unsigned char> stone()
         rgb[0] = value;
         rgb[1] = value * 0.98f;
         rgb[2] = value * 0.96f;
+    });
+}
+
+std::vector<unsigned char> fabric()
+{
+    return generate([](float u, float v, int x, int y, float* rgb) {
+        // Trama de tecido: fios horizontais e verticais que passam por cima e
+        // por baixo um do outro (como um xadrez), cada fio com um leve relevo.
+        const int thread = 8; // largura de um fio, em pixels
+        int column = x / thread;
+        int row = y / thread;
+        float across = (x % thread + 0.5f) / thread;
+        float along = (y % thread + 0.5f) / thread;
+
+        bool warpOnTop = (column + row) % 2 == 0;
+        float bump = std::sin((warpOnTop ? across : along) * PI);
+
+        float fuzz = fbm(u, v, 8, 3, 61);
+        float grain = hash(x, y, 63);
+
+        float value = 0.80f + 0.14f * bump + 0.06f * (fuzz - 0.5f) + 0.04f * (grain - 0.5f);
+        rgb[0] = value;
+        rgb[1] = value;
+        rgb[2] = value;
+    });
+}
+
+std::vector<unsigned char> hair()
+{
+    return generate([](float u, float v, int x, int y, float* rgb) {
+        // Fios ao longo de v: ruido esticado (muitas celulas em u, poucas em v)
+        float strands = valueNoise(u, v, 96, 71, 6);
+        float thin = valueNoise(u, v, 192, 73, 12);
+        float grain = hash(x, y, 77);
+
+        float value = 0.70f + 0.20f * strands + 0.10f * thin + 0.04f * (grain - 0.5f);
+        rgb[0] = value;
+        rgb[1] = value;
+        rgb[2] = value;
     });
 }
 

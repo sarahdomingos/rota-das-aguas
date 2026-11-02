@@ -69,6 +69,7 @@ const char* PAUSE_LINES[] = {
     "Clique ou E: interagir  ·  E, Espaço ou clique: fechar mensagem",
     "E perto do barco: embarcar  ·  no barco, WASD pilota e E desembarca (perto do píer ou da areia)",
     "I: mochila (inventário)  ·  Tab: quadro da missão  ·  M: música",
+    "E perto de um poste: acende ou apaga a luz  ·  N: acelera o tempo (dia e noite)",
     "F12: captura de tela",
     "F2: teste de transição"
 };
@@ -327,6 +328,13 @@ void Game::handleInteraction()
     // Barco: a Lia embarca
     if (result.boat) {
         boardBoat();
+        return;
+    }
+
+    // Poste (ou outro objeto que so muda algo na cena): som e aviso rapido
+    if (!result.toast.empty()) {
+        m_audio.play(m_chime, 0.45f, false);
+        showToast(result.toast);
         return;
     }
 
@@ -853,6 +861,12 @@ void Game::update(float deltaTime)
         else if (Input::wasKeyPressed(GLFW_KEY_F2)) {
             changeState(GameState::Transition);
         }
+        else if (Input::wasKeyPressed(GLFW_KEY_N)) {
+            // Acelera o ciclo do dia (para ver o sol nascer e se por mais rapido)
+            bool fast = m_scene->getTimeScale() > 1.0f;
+            m_scene->setTimeScale(fast ? 1.0f : 12.0f);
+            showToast(fast ? "Tempo normal." : "Tempo acelerado (N volta ao normal).");
+        }
         break;
 
     case GameState::Dialogue:
@@ -955,6 +969,17 @@ void Game::renderInterface()
     float hintWidth = m_text.measure(HINT, hintScale);
     m_text.drawBox(10.0f * ui, 10.0f * ui, hintWidth + 16.0f * ui, m_text.lineHeight(hintScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.25f });
     m_text.drawText(18.0f * ui, 14.0f * ui, HINT, hintScale, { 1.0f, 1.0f, 1.0f, 0.8f });
+
+    // Relogio do ciclo do dia, no canto superior direito
+    std::string clock = m_scene->clockText();
+    if (!clock.empty()) {
+        if (m_scene->getTimeScale() > 1.0f) clock += "  >>";
+        float clockScale = 0.6f * ui;
+        float clockWidth = m_text.measure(clock, clockScale);
+        float clockX = width - clockWidth - 26.0f * ui;
+        m_text.drawBox(clockX - 8.0f * ui, 10.0f * ui, clockWidth + 16.0f * ui, m_text.lineHeight(clockScale) + 8.0f * ui, { 0.0f, 0.0f, 0.0f, 0.3f });
+        m_text.drawText(clockX, 14.0f * ui, clock, clockScale, { 1.0f, 0.92f, 0.6f, 0.95f });
+    }
 
     if (m_state == GameState::Playing || m_state == GameState::Dialogue) {
         renderHud(ui, width);

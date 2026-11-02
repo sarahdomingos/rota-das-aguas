@@ -241,15 +241,24 @@ Mesh streetLamp()
 
     const Vec3 metal = { 0.16f, 0.30f, 0.26f };
 
-    mesh.addFrustum({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.45f, 0.0f }, 0.16f, 0.12f, 8, metal);
-    mesh.addFrustum({ 0.0f, 0.45f, 0.0f }, { 0.0f, 3.5f, 0.0f }, 0.07f, 0.05f, 8, metal);
-    mesh.addFrustum({ 0.0f, 3.45f, 0.0f }, { 0.35f, 3.75f, 0.0f }, 0.04f, 0.035f, 6, metal);
-    mesh.addFrustum({ 0.35f, 3.75f, 0.0f }, { 0.65f, 3.7f, 0.0f }, 0.035f, 0.035f, 6, metal);
+    mesh.addFrustum({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.45f, 0.0f }, 0.16f, 0.12f, 12, metal);
+    mesh.addFrustum({ 0.0f, 0.45f, 0.0f }, { 0.0f, 3.5f, 0.0f }, 0.07f, 0.05f, 12, metal);
+    mesh.addSphere({ 0.0f, 3.47f, 0.0f }, { 0.055f, 0.055f, 0.055f }, 10, 6, metal);
+    mesh.addFrustum({ 0.0f, 3.45f, 0.0f }, { 0.35f, 3.75f, 0.0f }, 0.04f, 0.035f, 8, metal);
+    mesh.addSphere({ 0.35f, 3.75f, 0.0f }, { 0.037f, 0.037f, 0.037f }, 8, 6, metal);
+    mesh.addFrustum({ 0.35f, 3.75f, 0.0f }, { 0.65f, 3.7f, 0.0f }, 0.035f, 0.035f, 8, metal);
 
     // Luminaria
-    mesh.addFrustum({ 0.65f, 3.78f, 0.0f }, { 0.65f, 3.55f, 0.0f }, 0.05f, 0.24f, 8, metal);
-    mesh.addSphere({ 0.65f, 3.52f, 0.0f }, { 0.13f, 0.08f, 0.13f }, 8, 4, { 1.0f, 0.95f, 0.75f });
+    mesh.addFrustum({ 0.65f, 3.78f, 0.0f }, { 0.65f, 3.55f, 0.0f }, 0.05f, 0.24f, 12, metal);
+    // A lampada (em LAMP_BULB) e desenhada a parte, acesa ou apagada (veja lampBulb)
 
+    return mesh;
+}
+
+Mesh lampBulb()
+{
+    Mesh mesh;
+    mesh.addSphere({ 0.0f, 0.0f, 0.0f }, { 0.13f, 0.08f, 0.13f }, 14, 8, { 1.0f, 1.0f, 1.0f });
     return mesh;
 }
 

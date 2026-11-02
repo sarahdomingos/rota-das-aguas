@@ -15,7 +15,7 @@ build\RotaDasAguas.exe
 ```
 
 # Capítulo 1 — Maceió
-A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/shaders`), iluminação Phong, neblina e texturas geradas por código. Tem areia, calçadão, casario colorido, píer de madeira, coqueiros que balançam, pedras, guarda-sóis e o barco Mundaú atracado, acompanhando as ondas. A Lia é um modelo low-poly gerado por código, com braços e pernas animados. Música e efeitos sonoros também são gerados por código (veja `CREDITS.md`).
+A cena atual é a orla de Maceió, renderizada com shaders GLSL 1.10 (`assets/shaders`), iluminação Phong, neblina e texturas geradas por código. Tem areia, calçadão, casario colorido, píer de madeira, coqueiros que balançam, pedras, guarda-sóis, postes de luz que a Lia acende e apaga, e o barco Mundaú atracado, acompanhando as ondas. O sol nasce e se põe com o passar do tempo (ciclo de dia e noite: um dia de 06:00 às 18:00 dura 3 minutos e a noite, 1 minuto). A Lia é um modelo low-poly gerado por código, com braços e pernas animados, primitivas com normais suaves e bordas arredondadas, e texturas de tecido e de cabelo. Música e efeitos sonoros também são gerados por código (veja `CREDITS.md`).
 
 # Diálogos
 As falas ficam em `assets/dialogos/` (um arquivo por capítulo, UTF-8). Cada diálogo é um bloco `[id]` seguido de linhas `Nome: fala` (use `Narrador:` para narração). O formato está explicado no topo de `assets/dialogos/maceio.txt`. Basta editar o arquivo e abrir o jogo de novo; não é preciso recompilar.
@@ -35,6 +35,8 @@ Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long
 - Arrastar com o mouse (botão esquerdo ou direito) → girar a câmera
 - Roda do mouse → zoom
 - Clique ou E → interagir com o objeto em destaque (NPCs, placa, coqueiros, itens)
+- E perto de um poste → acende ou apaga a luz do poste
+- N → acelera o tempo (ciclo do dia 12× mais rápido); N de novo volta ao normal
 - E perto do barco → embarcar · no barco: W/S acelera, A/D vira, E desembarca (perto do píer ou da areia)
 - Tab → quadro da missão em andamento
 - Na entrega: setas escolhem o resultado da conta, Enter ou E confirma, Esc volta
@@ -45,9 +47,13 @@ Para criar um NPC, monte um `CharacterStyle` (pele, cor e estilo de cabelo `Long
 - M → liga/desliga a música
 - F12 → salva uma captura (`captura.bmp`)
 
+# Testes rápidos (variáveis de ambiente)
+- `ROTA_HORA=18` → abre o jogo nessa hora do dia (ex.: 6 nascer do sol, 18 pôr do sol, 21 noite)
+- `ROTA_POSTES=1` → abre com todos os postes acesos
+
 # Organização do código
 - `src/core` → `Game` (loop principal), `Window`, `Input`, `AssetPath`
-- `src/graphics` → `Shader`, `Renderer` (materiais), `Camera` (orbital), `Mesh` (primitivas), `Model` (.obj), `Texture`, `ProceduralTextures`, `Light`, `Water`, `Transform`, `MathUtils`, `GLFunctions`
+- `src/graphics` → `Shader`, `Renderer` (materiais), `Camera` (orbital), `Mesh` (primitivas), `Model` (.obj), `Texture`, `ProceduralTextures`, `Light` (sol/lua, ambiente e luzes pontuais dos postes), `Water`, `Transform`, `MathUtils`, `GLFunctions`
 - `src/models` → geradores de modelos reutilizáveis: `LiaModel`, `CoastalModels` (coqueiro, pedra, nuvem, guarda-sol), `UrbanModels` (casa, píer, poste, placa)
 - `src/scenes` → `Scene` (interface de cada cidade) e `Maceio/MaceioScene`
 - `src/entities` → `Player` (Lia), `Boat` (Mundaú)
